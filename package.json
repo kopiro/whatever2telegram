@@ -1,0 +1,31 @@
+{
+  "name": "whatever2telegram",
+  "version": "1.0.0",
+  "description": "",
+  "private": true,
+  "scripts": {
+    "start": "node ./src/index.js",
+    "dev": "pm2-dev ./src/index.js"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^0.18.1",
+    "cheerio": "^1.0.0-rc.3",
+    "node-telegram-bot-api": "^0.30.0",
+    "pm2": "^4.2.1",
+    "striptags": "^3.1.1"
+  },
+  "devDependencies": {
+    "eslint": "^5.3.0",
+    "eslint-config-airbnb": "^17.1.0",
+    "eslint-config-prettier": "^6.1.0",
+    "eslint-plugin-import": "^2.16.0",
+    "eslint-plugin-jest": "^23.1.1",
+    "eslint-plugin-jsx-a11y": "^6.2.1",
+    "eslint-plugin-prettier": "^3.1.2",
+    "eslint-plugin-react": "^7.12.4",
+    "jest": "^24.9.0",
+    "prettier": "^1.19.1"
+  }
+}
