@@ -22,29 +22,29 @@ exports.fetch = async args => {
   const $page = cheerio.load(page.data);
   const $posts = $page(".userContentWrapper");
 
-  // Just fetch first post for now, otherwise change to `$links.length`
-  return Array(1)
+  return Array(1 || $posts.length)
     .fill()
     .map((_, i) => {
       const $postPage = cheerio.load($posts[i]);
 
       const seeMoreHref = $postPage(".see_more_link").attr("href");
-      const seeMoreLink = `https://facebook.com${seeMoreHref}`;
 
-      const urlInstance = new URL(seeMoreLink);
-      const id = urlInstance.searchParams.get("story_fbid");
-      const pageIdNum = urlInstance.searchParams.get("id");
+      let url;
+      if (seeMoreHref) {
+        const seeMoreLink = `https://facebook.com${seeMoreHref}`;
+        const urlInstance = new URL(seeMoreLink);
+        const id = urlInstance.searchParams.get("story_fbid");
+        const pageIdNum = urlInstance.searchParams.get("id");
+        url = `https://www.facebook.com/${pageIdNum}/posts/${id}`;
+      }
 
-      const url = `https://www.facebook.com/${pageIdNum}/posts/${id}`;
       const message = $postPage('[data-testid="post_message"]').text();
       const photo = $postPage("img.scaledImageFitWidth.img").attr("src");
 
       return {
-        id,
         message,
         photo,
-        url,
-        seeMoreLink
+        url
       };
     });
 

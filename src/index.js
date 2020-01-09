@@ -38,6 +38,16 @@ function readDataForModule(moduleConfig, filePath) {
   }
 }
 
+function getElementHash(element) {
+  return (
+    element.hash ||
+    crypto
+      .createHash("md5")
+      .update(JSON.stringify(element))
+      .digest("hex")
+  );
+}
+
 function getModuleExecWrapper(bot, moduleConfig) {
   const { name = "noop", args = {}, chatIds } = moduleConfig;
   const filePath = getDataFileForModule(moduleConfig);
@@ -54,7 +64,8 @@ function getModuleExecWrapper(bot, moduleConfig) {
       const nextElements = await moduleExec.fetch(args);
 
       for (const element of nextElements) {
-        if (previousData.processedIdMap[element.id]) {
+        const elementHash = getElementHash(element);
+        if (previousData.processedIdMap[elementHash]) {
           continue;
         }
 
@@ -81,7 +92,7 @@ function getModuleExecWrapper(bot, moduleConfig) {
             }
           });
 
-          previousData.processedIdMap[element.id] = Date.now();
+          previousData.processedIdMap[elementHash] = Date.now();
         } catch (err) {
           console.error(err);
         }
