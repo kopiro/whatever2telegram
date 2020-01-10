@@ -5,7 +5,9 @@
   "private": true,
   "scripts": {
     "start": "node ./src/index.js",
-    "dev": "pm2-dev ./src/index.js"
+    "dev": "pm2-dev ./src/index.js",
+    "build": "docker-compose build",
+    "push": "docker-compose push"
   },
   "author": "",
   "license": "MIT",

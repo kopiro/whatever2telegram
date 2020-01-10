@@ -6,9 +6,10 @@ const path = require("path");
 const TelegramBot = require("node-telegram-bot-api");
 const fs = require("fs");
 const crypto = require("crypto");
+const striptags = require("striptags");
 
 const DATA_DIR = path.join(__dirname, "..", "data");
-const config = JSON.parse(fs.readFileSync(path.join(DATA_DIR, `config.json`)));
+const config = require("../data/config");
 
 function getHashForModule(moduleConfig) {
   return crypto
@@ -55,19 +56,24 @@ function getModuleExecWrapper(bot, moduleConfig) {
   return async () => {
     console.log(`Executing`, moduleConfig);
 
-    const previousData = readDataForModule(moduleConfig, filePath);
-    previousData.moduleConfig = moduleConfig;
+    const moduleData = readDataForModule(moduleConfig, filePath);
+    moduleData.moduleConfig = moduleConfig;
 
     try {
       const moduleExec = require(`./modules/${name}`);
+      const { cache, elements } = await moduleExec.fetch(
+        args,
+        moduleData.cache,
+        moduleConfig.formatter
+      );
 
-      const nextElements = await moduleExec.fetch(args);
+      moduleData.cache = cache;
 
-      for (const element of nextElements) {
+      for (const element of elements) {
         const elementHash = getElementHash(element);
-        if (previousData.processedIdMap[elementHash]) {
-          continue;
-        }
+        // if (moduleData.processedIdMap[elementHash]) {
+        //   continue;
+        // }
 
         try {
           const { message, photo, url } = element;
@@ -84,26 +90,29 @@ function getModuleExecWrapper(bot, moduleConfig) {
                 .filter(e => e)
                 .join("\n\n");
               bot.sendPhoto(chatId, photo, {
-                caption: fullMessage
+                caption: striptags(fullMessage),
+                parse_mode: "html"
               });
             } else {
               const fullMessage = [message, url].filter(e => e).join("\n\n");
-              bot.sendMessage(chatId, fullMessage);
+              bot.sendMessage(chatId, striptags(fullMessage), {
+                parse_mode: "html"
+              });
             }
           });
 
-          previousData.processedIdMap[elementHash] = Date.now();
+          moduleData.processedIdMap[elementHash] = Date.now();
         } catch (err) {
-          console.error(err);
+          console.error(moduleConfig, err);
         }
       }
-      previousData.lastError = null;
+      moduleData.lastError = null;
     } catch (err) {
-      console.error(err);
-      previousData.lastError = err.message;
+      console.error(moduleConfig, err);
+      moduleData.lastError = err.message;
     } finally {
-      previousData.lastRunAt = Date.now();
-      writeDataForModule(filePath, previousData);
+      moduleData.lastRunAt = Date.now();
+      writeDataForModule(filePath, moduleData);
     }
   };
 }

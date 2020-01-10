@@ -3,26 +3,25 @@ Facebook module
 */
 const axios = require("axios");
 const cheerio = require("cheerio");
+const { baseHTTPHeaders } = require("../constants");
 
-const BASE_HEADERS = {
-  "user-agent":
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.88 Safari/537.36",
+const moduleBaseHTTPHeaders = {
+  ...baseHTTPHeaders,
   cookie:
     "datr=FwoWXrk8Ix4NwRYNLnZj7M8t; sb=4BcWXmc6mBJbj7KqScWwj2of; m_pixel_ratio=1; wd=1124x1098; noscript=1; fr=1tSJ9NgxO8sdRlSy5..BeFgof.R6.AAA.0.0.BeFhq0.AWXAFGrb"
 };
 
-exports.fetch = async args => {
-  const { pageId } = args;
+exports.fetch = async ({ pageId }) => {
   const page = await axios({
     url: `https://facebook.com/${pageId}/?_fb_noscript=1`,
     headers: {
-      ...BASE_HEADERS
+      ...moduleBaseHTTPHeaders
     }
   });
   const $page = cheerio.load(page.data);
   const $posts = $page(".userContentWrapper");
 
-  return Array(1 || $posts.length)
+  const posts = Array(1 || $posts.length)
     .fill()
     .map((_, i) => {
       const $postPage = cheerio.load($posts[i]);
@@ -48,18 +47,8 @@ exports.fetch = async args => {
       };
     });
 
-  //   return Promise.all(
-  //     posts.map(async post => {
-  //       //   const postPage = await axios({
-  //       //     url: postLink,
-  //       //     headers: {
-  //       //       ...BASE_HEADERS
-  //       //     }
-  //       //   });
-  //       // const $postPage = cheerio.load(postPage.data);
-  //       //   const message = $postPage('[data-testid="post_message"]').text();
-  //       //   const photo = $postPage("img.scaledImageFitWidth.img").attr("src");
-
-  //       return post;
-  //     })
+  return {
+    cache: {},
+    elements: posts
+  };
 };
