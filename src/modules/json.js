@@ -12,7 +12,7 @@ exports.fetch = async ({ url, headers }, cache = {}, formatter = e => e) => {
     ...moduleBaseHTTPHeaders,
     "content-type": "application/json",
     ...headers,
-    ...(!cache.etag ? { "if-none-match": cache.etag } : {})
+    ...(cache.etag ? { "if-none-match": cache.etag } : {})
   };
   const response = await axios({
     url,
