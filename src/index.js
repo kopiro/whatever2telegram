@@ -71,9 +71,9 @@ function getModuleExecWrapper(bot, moduleConfig) {
 
       for (const element of elements) {
         const elementHash = getElementHash(element);
-        // if (moduleData.processedIdMap[elementHash]) {
-        //   continue;
-        // }
+        if (moduleData.processedIdMap[elementHash]) {
+          continue;
+        }
 
         try {
           const { message, photo, url } = element;
