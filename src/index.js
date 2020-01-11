@@ -97,7 +97,10 @@ function getModuleExecWrapper(bot, moduleConfig) {
 
     try {
       const moduleExec = require(`./modules/${name}`);
-      const { elements = [], cache = {} } = await moduleExec.fetch(args, {});
+      const { elements = [], cache = {} } = await moduleExec.fetch(
+        args,
+        moduleData.cache
+      );
       const formattedElements = typeof elements === "object" ? elements : [];
 
       console.log(
