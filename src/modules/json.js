@@ -23,7 +23,7 @@ exports.fetch = async ({ url, headers }, cache = {}) => {
   return {
     elements: response.data,
     cache: {
-      etag: response.headers.etag
+      // etag: response.headers.etag
     }
   };
 };
