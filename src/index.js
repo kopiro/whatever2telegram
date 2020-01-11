@@ -9,6 +9,7 @@ const fs = require("fs");
 const crypto = require("crypto");
 const striptags = require("striptags");
 const sequential = require("promise-sequential");
+const Sentry = require("@sentry/node");
 const { tagsAllowed, newLine, seeMore } = require("./constants");
 
 const DATA_DIR = path.join(__dirname, "..", "data");
@@ -157,6 +158,12 @@ function main() {
 
     moduleExec();
     setInterval(moduleExec, fetchInterval * 1000);
+  });
+}
+
+if (config.sentryDsn) {
+  Sentry.init({
+    dsn: config.sentryDsn
   });
 }
 
