@@ -123,6 +123,7 @@ function getModuleExecWrapper(bot, moduleConfig) {
             await notifyObject(bot, chatIds, formatter(element));
             moduleData.processedIdMap[elementHash] = Date.now();
           } catch (err) {
+            Sentry.captureException(err);
             console.error(
               `Error in sending chat: ${moduleConfig.description}`,
               err.message
@@ -134,6 +135,7 @@ function getModuleExecWrapper(bot, moduleConfig) {
       moduleData.cache = cache;
       moduleData.lastError = null;
     } catch (err) {
+      Sentry.captureException(err);
       console.error(`Error: ${moduleConfig.description}`, err.message);
       moduleData.lastError = err.message;
     } finally {
