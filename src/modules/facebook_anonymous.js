@@ -48,7 +48,6 @@ exports.fetch = async ({ pageId }) => {
     });
 
   return {
-    cache: {},
     elements: posts
   };
 };

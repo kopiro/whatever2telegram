@@ -1,3 +1,4 @@
+/* eslint-disable no-param-reassign */
 /* eslint-disable no-continue */
 /* eslint-disable global-require */
 /* eslint-disable import/no-dynamic-require */
@@ -7,6 +8,8 @@ const TelegramBot = require("node-telegram-bot-api");
 const fs = require("fs");
 const crypto = require("crypto");
 const striptags = require("striptags");
+const sequential = require("promise-sequential");
+const { tagsAllowed, newLine, seeMore } = require("./constants");
 
 const DATA_DIR = path.join(__dirname, "..", "data");
 const config = require("../data/config");
@@ -49,66 +52,85 @@ function getElementHash(element) {
   );
 }
 
+function notifyObject(bot, chatIds, element) {
+  const { photo, url } = element;
+  const message = striptags(element.message, tagsAllowed);
+
+  return Promise.all(
+    chatIds.map(chatId => {
+      console.debug(`Sending message to ${chatId}`, { message, photo, url });
+
+      if (photo) {
+        const maxMessageLength =
+          1020 - newLine.length - seeMore.length - url.length;
+        const fullMessage = [
+          message.length > maxMessageLength
+            ? [message.substr(0, maxMessageLength), seeMore].join("")
+            : message,
+          url
+        ]
+          .filter(e => e)
+          .join(newLine);
+
+        return bot.sendPhoto(chatId, photo, {
+          caption: fullMessage,
+          parse_mode: "html"
+        });
+      }
+
+      const fullMessage = [message, url].filter(e => e).join(newLine);
+      return bot.sendMessage(chatId, striptags(fullMessage, tagsAllowed), {
+        parse_mode: "html"
+      });
+    })
+  );
+}
+
 function getModuleExecWrapper(bot, moduleConfig) {
   const { name = "noop", args = {}, chatIds } = moduleConfig;
   const filePath = getDataFileForModule(moduleConfig);
+  const formatter = moduleConfig.formatter || (e => e);
 
   return async () => {
-    console.log(`Executing`, moduleConfig);
-
     const moduleData = readDataForModule(moduleConfig, filePath);
     moduleData.moduleConfig = moduleConfig;
 
     try {
       const moduleExec = require(`./modules/${name}`);
-      const { cache, elements } = await moduleExec.fetch(
-        args,
-        moduleData.cache,
-        moduleConfig.formatter
+      const { elements = [], cache = {} } = await moduleExec.fetch(args, {});
+      const formattedElements = typeof elements === "object" ? elements : [];
+
+      console.log(
+        `Executed: ${moduleConfig.description} - got ${formattedElements.length}`,
+        cache
+      );
+
+      await sequential(
+        formattedElements.map(element => async () => {
+          const elementHash = getElementHash(element);
+          if (moduleData.processedIdMap[elementHash]) {
+            // console.debug(
+            //   `Already processed ${elementHash} for ${moduleConfig.description}`
+            // );
+            return;
+          }
+
+          try {
+            await notifyObject(bot, chatIds, formatter(element));
+            moduleData.processedIdMap[elementHash] = Date.now();
+          } catch (err) {
+            console.error(
+              `Error in sending chat: ${moduleConfig.description}`,
+              err.message
+            );
+          }
+        })
       );
 
       moduleData.cache = cache;
-
-      for (const element of elements) {
-        const elementHash = getElementHash(element);
-        if (moduleData.processedIdMap[elementHash]) {
-          continue;
-        }
-
-        try {
-          const { message, photo, url } = element;
-
-          chatIds.forEach(chatId => {
-            if (photo) {
-              const maxMessageLength = 1024 - 24 - url.length;
-              const fullMessage = [
-                message.length > maxMessageLength
-                  ? `${message.substr(0, maxMessageLength)}...`
-                  : message,
-                url
-              ]
-                .filter(e => e)
-                .join("\n\n");
-              bot.sendPhoto(chatId, photo, {
-                caption: striptags(fullMessage),
-                parse_mode: "html"
-              });
-            } else {
-              const fullMessage = [message, url].filter(e => e).join("\n\n");
-              bot.sendMessage(chatId, striptags(fullMessage), {
-                parse_mode: "html"
-              });
-            }
-          });
-
-          moduleData.processedIdMap[elementHash] = Date.now();
-        } catch (err) {
-          console.error(moduleConfig, err);
-        }
-      }
       moduleData.lastError = null;
     } catch (err) {
-      console.error(moduleConfig, err);
+      console.error(`Error: ${moduleConfig.description}`, err.message);
       moduleData.lastError = err.message;
     } finally {
       moduleData.lastRunAt = Date.now();

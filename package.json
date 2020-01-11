@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "start": "node ./src/index.js",
-    "dev": "pm2-dev ./src/index.js",
+    "dev": "pm2-dev start ecosystem.config.js",
     "build": "docker-compose build",
     "push": "docker-compose push"
   },
@@ -16,6 +16,7 @@
     "cheerio": "^1.0.0-rc.3",
     "node-telegram-bot-api": "^0.30.0",
     "pm2": "^4.2.1",
+    "promise-sequential": "^1.1.1",
     "striptags": "^3.1.1"
   },
   "devDependencies": {
