@@ -2,18 +2,116 @@
 Facebook module
 */
 const axios = require("axios");
+const puppeteer = require("puppeteer");
 const cheerio = require("cheerio");
+const path = require("path");
 const { baseHTTPHeaders } = require("../constants");
+const config = require("../../data/config");
+
+const DESKTOP_DOMAIN = "https://www.facebook.com";
+const MOBILE_DOMAIN = "https://m.facebook.com";
 
 const moduleBaseHTTPHeaders = {
-  ...baseHTTPHeaders,
-  cookie:
-    "datr=FwoWXrk8Ix4NwRYNLnZj7M8t; sb=4BcWXmc6mBJbj7KqScWwj2of; m_pixel_ratio=1; wd=1124x1098; noscript=1; fr=1tSJ9NgxO8sdRlSy5..BeFgof.R6.AAA.0.0.BeFhq0.AWXAFGrb"
+  ...baseHTTPHeaders
 };
 
-exports.fetch = async ({ pageId }) => {
+const passSecurityCheck = ({ pageId }, $page, bot) => {
+  return new Promise(async resolve => {
+    const SCREENSHOT_FILE_PATH = path.join("/tmp", `${pageId}.jpg`);
+
+    if (!/security/i.test(await $page.title())) {
+      resolve();
+      return;
+    }
+
+    await $page.goto(`${MOBILE_DOMAIN}/${pageId}`, {
+      waitUntil: "networkidle2"
+    });
+
+    console.log("Security check required");
+    await $page.screenshot({ path: SCREENSHOT_FILE_PATH });
+
+    let sentObject;
+    bot.onMessage(async msg => {
+      if (msg.reply_to_message.message_id === sentObject.message_id) {
+        await $page.$eval(
+          ".captcha_input input",
+          (el, _text) => {
+            // eslint-disable-next-line no-param-reassign
+            el.value = _text;
+          },
+          msg.text
+        );
+        await $page.$eval("form", el => {
+          el.submit();
+        });
+        await $page.waitForNavigation({ waitUntil: "networkidle2" });
+        await $page.goto(`${DESKTOP_DOMAIN}/${pageId}`, {
+          waitUntil: "networkidle2"
+        });
+        resolve();
+      }
+    });
+
+    sentObject = await bot.sendPhoto(config.debugChatId, SCREENSHOT_FILE_PATH);
+  });
+};
+
+exports.fetchWithChrome = async (args, cache = {}, bot) => {
+  const { pageId } = args;
+
+  const browser = await puppeteer.launch({
+    headless: true,
+    executablePath: process.env.CHROMIUM_EXECUTABLE_PATH,
+    args: ["--disable-dev-shm-usage", "--no-sandbox", "--disable-gpu"]
+  });
+  const $page = await browser.newPage();
+
+  if (cache.cookies) {
+    await $page.setCookie(...cache.cookies);
+  }
+
+  await $page.goto(`https://www.facebook.com/${pageId}`, {
+    waitUntil: "networkidle2"
+  });
+
+  await passSecurityCheck(args, $page, bot);
+
+  const $post = await $page.waitForSelector(".userContentWrapper", {
+    timeout: 2000
+  });
+
+  const cookies = await $page.cookies();
+
+  const message = await $post.$eval(
+    '[data-testid="post_message"] p',
+    el => el.innerText
+  );
+  const photo = await $post.$eval("img.scaledImageFitWidth", el => el.src);
+  const seeMoreHref = await $post.$eval(".see_more_link", el => el.href);
+
+  let url;
+  if (seeMoreHref) {
+    console.log("seeMoreHref", seeMoreHref);
+    const urlInstance = new URL(seeMoreHref);
+    const id = urlInstance.searchParams.get("story_fbid");
+    const pageIdNum = urlInstance.searchParams.get("id");
+    url = `https://www.facebook.com/${pageIdNum}/posts/${id}`;
+  }
+
+  return {
+    elements: [{ message, url, photo }],
+    cache: {
+      cookies
+    }
+  };
+};
+
+exports.fetch = exports.fetchWithChrome;
+
+exports.fetchWithCURL = async ({ pageId }) => {
   const page = await axios({
-    url: `https://facebook.com/${pageId}/?_fb_noscript=1`,
+    url: `${DESKTOP_DOMAIN}/${pageId}/?_fb_noscript=1`,
     headers: {
       ...moduleBaseHTTPHeaders
     }

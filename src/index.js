@@ -10,28 +10,25 @@ const crypto = require("crypto");
 const striptags = require("striptags");
 const sequential = require("promise-sequential");
 const Sentry = require("@sentry/node");
-const { tagsAllowed, newLine, seeMore } = require("./constants");
+const { tagsAllowed, newLine, seeMore, DATA_DIR } = require("./constants");
 
-const DATA_DIR = path.join(__dirname, "..", "data");
+const ENV = process.env.NODE_ENV || "development";
+
 const config = require("../data/config");
 
-function getHashForModule(moduleConfig) {
-  return crypto
-    .createHash("md5")
-    .update(moduleConfig.name + JSON.stringify(moduleConfig.args))
-    .digest("hex");
-}
-
-function getDataFileForModule(moduleConfig) {
-  const filePath = getHashForModule(moduleConfig);
+function geModuleDataFilePath(moduleConfig) {
+  const filePath = moduleConfig.description;
   return path.join(DATA_DIR, `${filePath}.json`);
 }
 
-function writeDataForModule(filePath, data) {
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+function writeDataForModule(moduleConfig, data) {
+  const filePath = geModuleDataFilePath(moduleConfig);
+  return fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
 }
 
-function readDataForModule(moduleConfig, filePath) {
+function readDataForModule(moduleConfig) {
+  const filePath = geModuleDataFilePath(moduleConfig);
+
   try {
     const data = JSON.parse(fs.readFileSync(filePath));
     if (!data) throw new Error();
@@ -53,12 +50,13 @@ function getElementHash(element) {
   );
 }
 
-function notifyObject(bot, chatIds, element) {
+function notifyChange(bot, chatIds, element) {
   const { photo, url } = element;
   const message = striptags(element.message, tagsAllowed);
+  const finalChatIds = ENV === "development" ? [config.debugChatId] : chatIds;
 
   return Promise.all(
-    chatIds.map(chatId => {
+    finalChatIds.map(async chatId => {
       console.debug(`Sending message to ${chatId}`, { message, photo, url });
 
       if (photo) {
@@ -73,44 +71,44 @@ function notifyObject(bot, chatIds, element) {
           .filter(e => e)
           .join(newLine);
 
-        return bot.sendPhoto(chatId, photo, {
+        bot.sendPhoto(chatId, photo, {
           caption: fullMessage,
           parse_mode: "html"
         });
+        return true;
       }
 
       const fullMessage = [message, url].filter(e => e).join(newLine);
-      return bot.sendMessage(chatId, striptags(fullMessage, tagsAllowed), {
+      bot.sendMessage(chatId, striptags(fullMessage, tagsAllowed), {
         parse_mode: "html"
       });
+      return true;
     })
   );
 }
 
 function getModuleExecWrapper(bot, moduleConfig) {
   const { name = "noop", args = {}, chatIds } = moduleConfig;
-  const filePath = getDataFileForModule(moduleConfig);
   const formatter = moduleConfig.formatter || (e => e);
 
   return async () => {
-    const moduleData = readDataForModule(moduleConfig, filePath);
-    moduleData.moduleConfig = moduleConfig;
+    const moduleData = readDataForModule(moduleConfig);
 
     try {
       const moduleExec = require(`./modules/${name}`);
       const { elements = [], cache = {} } = await moduleExec.fetch(
         args,
-        moduleData.cache
+        moduleData.cache,
+        bot
       );
-      const formattedElements = typeof elements === "object" ? elements : [];
 
       console.log(
-        `Executed: ${moduleConfig.description} - got ${formattedElements.length}`,
+        `Executed: ${moduleConfig.description} - got ${elements.length}`,
         cache
       );
 
       await sequential(
-        formattedElements.map(element => async () => {
+        elements.map(element => async () => {
           const elementHash = getElementHash(element);
           if (moduleData.processedIdMap[elementHash]) {
             // console.debug(
@@ -120,8 +118,9 @@ function getModuleExecWrapper(bot, moduleConfig) {
           }
 
           try {
-            await notifyObject(bot, chatIds, formatter(element));
+            await notifyChange(bot, chatIds, formatter(element));
             moduleData.processedIdMap[elementHash] = Date.now();
+            writeDataForModule(moduleConfig, moduleData);
           } catch (err) {
             Sentry.captureException(err);
             console.error(
@@ -140,7 +139,7 @@ function getModuleExecWrapper(bot, moduleConfig) {
       moduleData.lastError = err.message;
     } finally {
       moduleData.lastRunAt = Date.now();
-      writeDataForModule(filePath, moduleData);
+      writeDataForModule(moduleConfig, moduleData);
     }
   };
 }
@@ -152,7 +151,15 @@ function main() {
     polling: telegram.polling
   });
 
-  bot.on("message", msg => console.log("New message", msg));
+  const botListeners = [];
+  bot.onMessage = fn => {
+    botListeners.push(fn);
+  };
+
+  bot.on("message", msg => {
+    console.log("New message", msg);
+    botListeners.forEach(fn => fn(msg));
+  });
 
   modules.forEach(moduleConfig => {
     const { fetchInterval = 60 } = moduleConfig;

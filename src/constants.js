@@ -1,3 +1,5 @@
+const path = require("path");
+
 exports.baseHTTPHeaders = {
   "accept-language": "en-US,en",
   "user-agent":
@@ -7,3 +9,5 @@ exports.baseHTTPHeaders = {
 exports.tagsAllowed = ["b", "i", "u"];
 exports.newLine = "\n\n";
 exports.seeMore = "...";
+
+exports.DATA_DIR = path.join(__dirname, "..", "data");
