@@ -58,53 +58,61 @@ const passSecurityCheck = ({ pageId }, $page, bot) => {
 };
 
 exports.fetchWithChrome = async (args, cache = {}, bot) => {
-  const { pageId } = args;
+  let browser;
 
-  const browser = await puppeteer.launch({
-    headless: true,
-    executablePath: process.env.CHROMIUM_EXECUTABLE_PATH,
-    args: ["--disable-dev-shm-usage", "--no-sandbox", "--disable-gpu"]
-  });
-  const $page = await browser.newPage();
+  try {
+    const { pageId } = args;
 
-  if (cache.cookies) {
-    await $page.setCookie(...cache.cookies);
-  }
+    browser = await puppeteer.launch({
+      headless: true,
+      executablePath: process.env.CHROMIUM_EXECUTABLE_PATH,
+      args: ["--disable-dev-shm-usage", "--no-sandbox", "--disable-gpu"]
+    });
+    const $page = await browser.newPage();
 
-  await $page.goto(`https://www.facebook.com/${pageId}`, {
-    waitUntil: "networkidle2"
-  });
-
-  await passSecurityCheck(args, $page, bot);
-
-  const $post = await $page.waitForSelector(".userContentWrapper", {
-    timeout: 2000
-  });
-
-  const cookies = await $page.cookies();
-
-  const message = await $post.$eval(
-    '[data-testid="post_message"] p',
-    el => el.innerText
-  );
-  const photo = await $post.$eval("img.scaledImageFitWidth", el => el.src);
-  const seeMoreHref = await $post.$eval(".see_more_link", el => el.href);
-
-  let url;
-  if (seeMoreHref) {
-    console.log("seeMoreHref", seeMoreHref);
-    const urlInstance = new URL(seeMoreHref);
-    const id = urlInstance.searchParams.get("story_fbid");
-    const pageIdNum = urlInstance.searchParams.get("id");
-    url = `https://www.facebook.com/${pageIdNum}/posts/${id}`;
-  }
-
-  return {
-    elements: [{ message, url, photo }],
-    cache: {
-      cookies
+    if (cache.cookies) {
+      await $page.setCookie(...cache.cookies);
     }
-  };
+
+    await $page.goto(`https://www.facebook.com/${pageId}`, {
+      waitUntil: "networkidle2"
+    });
+
+    await passSecurityCheck(args, $page, bot);
+
+    const $post = await $page.waitForSelector(".userContentWrapper", {
+      timeout: 2000
+    });
+
+    const cookies = await $page.cookies();
+
+    const message = await $post.$eval(
+      '[data-testid="post_message"] p',
+      el => el.innerText
+    );
+    const photo = await $post.$eval("img.scaledImageFitWidth", el => el.src);
+    const seeMoreHref = await $post.$eval(".see_more_link", el => el.href);
+
+    let url;
+    if (seeMoreHref) {
+      console.log("seeMoreHref", seeMoreHref);
+      const urlInstance = new URL(seeMoreHref);
+      const id = urlInstance.searchParams.get("story_fbid");
+      const pageIdNum = urlInstance.searchParams.get("id");
+      url = `https://www.facebook.com/${pageIdNum}/posts/${id}`;
+    }
+
+    return {
+      elements: [{ message, url, photo }],
+      cache: {
+        cookies
+      }
+    };
+  } catch (err) {
+    throw err;
+  } finally {
+    await browser.close();
+  }
 };
 
 exports.fetch = exports.fetchWithChrome;
