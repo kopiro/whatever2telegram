@@ -152,7 +152,8 @@ function main() {
   });
 
   const botListeners = [];
-  bot.onMessage = fn => {
+
+  bot.whenMessage = fn => {
     botListeners.push(fn);
   };
 

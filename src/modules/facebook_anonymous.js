@@ -32,7 +32,7 @@ const passSecurityCheck = ({ pageId }, $page, bot) => {
     await $page.screenshot({ path: SCREENSHOT_FILE_PATH });
 
     let sentObject;
-    bot.onMessage(async msg => {
+    bot.whenMessage(async msg => {
       if (msg.reply_to_message.message_id === sentObject.message_id) {
         await $page.$eval(
           ".captcha_input input",
