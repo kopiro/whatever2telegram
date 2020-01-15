@@ -61,7 +61,7 @@ function notifyChange(bot, chatIds, element) {
 
       if (photo) {
         const maxMessageLength =
-          1020 - newLine.length - seeMore.length - url.length;
+          1020 - newLine.length - seeMore.length - (url || "").length;
         const fullMessage = [
           message.length > maxMessageLength
             ? [message.substr(0, maxMessageLength), seeMore].join("")
