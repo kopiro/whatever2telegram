@@ -53,10 +53,9 @@ function getElementHash(element) {
 function notifyChange(bot, chatIds, element) {
   const { photo, url } = element;
   const message = striptags(element.message, tagsAllowed);
-  const finalChatIds = ENV === "development" ? [config.debugChatId] : chatIds;
 
   return Promise.all(
-    finalChatIds.map(async chatId => {
+    chatIds.map(async chatId => {
       console.debug(`Sending message to ${chatId}`, { message, photo, url });
 
       if (photo) {
