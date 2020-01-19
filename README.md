@@ -20,7 +20,7 @@ Top-level options are:
  
 Example configuration:
 
-```
+```js
 module.exports = {
   env: "prod",
   sentryDsn: "",
