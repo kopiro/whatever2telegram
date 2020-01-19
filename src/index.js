@@ -4,15 +4,13 @@
 /* eslint-disable import/no-dynamic-require */
 /* eslint-disable no-restricted-syntax */
 const path = require("path");
-const TelegramBot = require("node-telegram-bot-api");
 const fs = require("fs");
 const crypto = require("crypto");
 const striptags = require("striptags");
 const sequential = require("promise-sequential");
 const Sentry = require("@sentry/node");
-const { tagsAllowed, newLine, seeMore, DATA_DIR } = require("./constants");
-
-const ENV = process.env.NODE_ENV || "development";
+const Tgfancy = require("tgfancy");
+const { tagsAllowed, newLine, DATA_DIR } = require("./constants");
 
 const config = require("../data/config");
 
@@ -57,31 +55,18 @@ function notifyChange(bot, chatIds, element) {
   return Promise.all(
     chatIds.map(async chatId => {
       console.debug(`Sending message to ${chatId}`, { message, photo, url });
+      const fullMessage = [message, url].filter(e => e).join(newLine);
 
       if (photo) {
-        const maxMessageLength =
-          1020 - newLine.length - seeMore.length - (url || "").length;
-        const fullMessage = [
-          message.length > maxMessageLength
-            ? [message.substr(0, maxMessageLength), seeMore].join("")
-            : message,
-          url
-        ]
-          .filter(e => e)
-          .join(newLine);
-
         bot.sendPhoto(chatId, photo, {
-          caption: fullMessage,
-          parse_mode: "html"
+          disable_notification: true
         });
-        return true;
       }
 
-      const fullMessage = [message, url].filter(e => e).join(newLine);
       bot.sendMessage(chatId, striptags(fullMessage, tagsAllowed), {
-        parse_mode: "html"
+        parse_mode: "html",
+        disable_web_page_preview: true
       });
-      return true;
     })
   );
 }
@@ -91,6 +76,16 @@ function getModuleExecWrapper(bot, moduleConfig) {
   const formatter = moduleConfig.formatter || (e => e);
 
   return async () => {
+    if (config.doNotDisturb) {
+      const { min, max } = config.doNotDisturb;
+      const now = new Date();
+      const hour = now.getUTCHours();
+      if (hour < min || hour > max) {
+        console.log(`Do not disturb is enabled (H${hour})`);
+        return;
+      }
+    }
+
     const moduleData = readDataForModule(moduleConfig);
 
     try {
@@ -146,8 +141,11 @@ function getModuleExecWrapper(bot, moduleConfig) {
 function main() {
   const { telegram, modules } = config;
 
-  const bot = new TelegramBot(telegram.token, {
-    polling: telegram.polling
+  const bot = new Tgfancy(telegram.token, {
+    polling: telegram.polling,
+    tgfancy: {
+      chatIdResolution: false
+    }
   });
 
   const botListeners = [];
