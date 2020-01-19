@@ -20,6 +20,7 @@
     "pm2": "^4.2.1",
     "promise-sequential": "^1.1.1",
     "puppeteer": "^2.0.0",
+    "rss-parser": "^3.7.3",
     "striptags": "^3.1.1",
     "tgfancy": "^0.13.0"
   },

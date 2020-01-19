@@ -58,9 +58,13 @@ function notifyChange(bot, chatIds, element) {
       const fullMessage = [message, url].filter(e => e).join(newLine);
 
       if (photo) {
-        bot.sendPhoto(chatId, photo, {
-          disable_notification: true
-        });
+        try {
+          bot.sendPhoto(chatId, photo, {
+            disable_notification: true
+          });
+        } catch (err) {
+          console.error("Error in sending photo", err);
+        }
       }
 
       bot.sendMessage(chatId, striptags(fullMessage, tagsAllowed), {
