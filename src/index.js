@@ -49,13 +49,11 @@ function getElementHash(element) {
 }
 
 function notifyChange(bot, chatIds, element) {
-  const { photo, url } = element;
-  const message = striptags(element.message, tagsAllowed);
+  const { photo, url, message } = element;
 
   return Promise.all(
     chatIds.map(async chatId => {
-      console.debug(`Sending message to ${chatId}`, { message, photo, url });
-      const fullMessage = [message, url].filter(e => e).join(newLine);
+      console.debug(`Sending message to ${chatId}`, element);
 
       if (photo) {
         try {
@@ -67,17 +65,34 @@ function notifyChange(bot, chatIds, element) {
         }
       }
 
-      bot.sendMessage(chatId, striptags(fullMessage, tagsAllowed), {
-        parse_mode: "html",
-        disable_web_page_preview: true
-      });
+      let finalMessage;
+      const finalOpt = { parse_mode: "html", disable_web_page_preview: true };
+
+      if (message && url) {
+        finalMessage = `${striptags(element.message, tagsAllowed)}\n${url}`;
+      } else if (message && !url) {
+        finalMessage = striptags(element.message, tagsAllowed);
+      } else if (!message && url) {
+        finalMessage = url;
+        finalOpt.disable_web_page_preview = false;
+      } else {
+        return;
+      }
+
+      bot.sendMessage(chatId, finalMessage, finalOpt);
     })
   );
 }
 
 function getModuleExecWrapper(bot, moduleConfig) {
-  const { name = "noop", args = {}, chatIds } = moduleConfig;
-  const formatter = moduleConfig.formatter || (e => e);
+  const {
+    name = "noop",
+    args = {},
+    chatIds,
+    formatter = e => e,
+    attributes,
+    filter
+  } = moduleConfig;
 
   return async () => {
     if (config.doNotDisturb) {
@@ -94,11 +109,28 @@ function getModuleExecWrapper(bot, moduleConfig) {
 
     try {
       const moduleExec = require(`./modules/${name}`);
-      const { elements = [], cache = {} } = await moduleExec.fetch(
+      const moduleFetchedData = await moduleExec.fetch(
         args,
         moduleData.cache,
         bot
       );
+
+      let elements = moduleFetchedData.elements || [];
+      const cache = moduleFetchedData.cache || {};
+
+      // Filtering elements
+      if (filter) {
+        elements = elements.filter(filter);
+      }
+
+      // Filtering attributes
+      if (attributes) {
+        elements = elements.map(e =>
+          attributes.reduce((carry, attr) => {
+            return { ...carry, ...{ [attr]: e[attr] } };
+          }, {})
+        );
+      }
 
       console.log(
         `Executed: ${moduleConfig.description} - got ${elements.length}`,
