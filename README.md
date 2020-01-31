@@ -85,6 +85,8 @@ Available options to every module:
 - `name`: name of the module
 - `args`: arguments to pass to the modules
 - `description`: unique identifier for this configuration
+- `filter`: filter function that could filter data before being sent
+- `attributes`: filter function for attributes, too minimize payload and diffs
 
 #### `facebook_page`
 
@@ -98,8 +100,6 @@ Facebook page posts.
 URL endpoint with JSON data formatting.
 
 - `url`: URL to fetch
-- `filter`: Filter function
-- `attributes`: Map different attributes name
 
 #### `rss`
 
