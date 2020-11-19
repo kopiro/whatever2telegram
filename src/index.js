@@ -175,6 +175,10 @@ function main() {
   });
 
   modules.forEach(moduleConfig => {
+    if (moduleConfig.disabled) {
+      return;
+    }
+
     const { fetchInterval = 60 } = moduleConfig;
     const moduleExec = getModuleExecWrapper(bot, moduleConfig);
 
