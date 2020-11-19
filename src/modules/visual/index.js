@@ -26,8 +26,8 @@ async function checkUpdates(screenshotPath, browser, name, url, selector, clickS
 
   try {
     await page.goto(url, { waitUntil: "networkidle0" });
-  } catch (e) {
-    console.error(`Failed to check ${name}: ${e.message}`);
+  } catch (err) {
+    console.error(`Failed to check ${name}: ${err.message}`);
     return null;
   }
 
@@ -35,7 +35,7 @@ async function checkUpdates(screenshotPath, browser, name, url, selector, clickS
     try {
       await page.click(clickSelector);
     } catch (err) {
-      console.warn(`Unable to click ${clickSelector} on ${name}: ${e.message}`);
+      console.warn(`Unable to click ${clickSelector} on ${name}: ${err.message}`);
     }
   }
 
