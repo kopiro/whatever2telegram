@@ -4,6 +4,7 @@ const fs = require("fs");
 const { PNG } = require("pngjs");
 const pixelmatch = require("pixelmatch");
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
+const pkg = require("./package.json");
 
 const { DATA_DIR } = require("../../constants");
 
@@ -24,10 +25,12 @@ async function checkUpdates(screenshotPath, browser, name, url, selector, clickS
   const page = await browser.newPage();
   page.setViewport(VIEWPORT);
 
+  console.debug(pkg.name, `Loading ${url}`);
+
   try {
     await page.goto(url, { waitUntil: "networkidle0" });
   } catch (err) {
-    console.error(`Failed to check ${name}: ${err.message}`);
+    console.error(pkg.name, `Failed to check ${name}: ${err.message}`);
     return null;
   }
 
@@ -35,7 +38,7 @@ async function checkUpdates(screenshotPath, browser, name, url, selector, clickS
     try {
       await page.click(clickSelector);
     } catch (err) {
-      console.warn(`Unable to click ${clickSelector} on ${name}: ${err.message}`);
+      console.warn(pkg.name, `Unable to click ${clickSelector} on ${name}: ${err.message}`);
     }
   }
 
@@ -77,6 +80,8 @@ async function checkUpdates(screenshotPath, browser, name, url, selector, clickS
           };
         }
       }
+
+      console.debug(pkg.name, `The URL ${url} didn't changed`);
       return null;
     }
 
@@ -96,17 +101,20 @@ exports.fetch = async ({ screenshotDirName, sites }) => {
   const screenshotPath = path.join(VISUAL_DATA_DIR, screenshotDirName);
   fs.mkdirSync(screenshotPath, { recursive: true });
 
-  const browser = await puppeteer.launch({ headless: true });
+  const browser = await puppeteer.launch({ headless: true, args: ["--no-sandbox", "--disable-setuid-sandbox"] });
   try {
-    const data = await Promise.allSettled(
-      sites.map(site =>
-        checkUpdates(screenshotPath, browser, site.name, site.url, site.element_selector, site.click_selector),
-      ),
-    );
+    const data = (
+      await Promise.allSettled(
+        sites.map(site =>
+          checkUpdates(screenshotPath, browser, site.name, site.url, site.element_selector, site.click_selector),
+        ),
+      )
+    ).map(e => e.value);
     return {
       elements: data,
     };
   } finally {
+    console.debug(pkg.name, "Closing browser");
     browser.close();
   }
 };

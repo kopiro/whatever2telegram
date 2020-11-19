@@ -69,7 +69,7 @@ function notifyChange(bot, chatIds, element) {
 
       if (photo) {
         bot.sendPhoto(chatId, photo, {
-          disable_notification: true,
+          disable_notification: !!finalMessage,
           caption: caption || "",
         });
       }
@@ -95,6 +95,8 @@ function getModuleExecWrapper(bot, moduleConfig) {
 
     try {
       const moduleExec = require(`./modules/${name}`);
+
+      console.debug(`Executing script <${moduleConfig.description}>`);
       const moduleFetchedData = await moduleExec.fetch(args, moduleData.cache, bot);
 
       let elements = moduleFetchedData.elements || [];
