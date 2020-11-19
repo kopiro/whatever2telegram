@@ -1,5 +1,4 @@
-FROM node:13-alpine
-WORKDIR /app
+FROM node:14-alpine
 
 RUN apk update && apk add --no-cache nmap && \
     echo @edge http://nl.alpinelinux.org/alpine/edge/community >> /etc/apk/repositories && \
@@ -12,15 +11,24 @@ RUN apk update && apk add --no-cache nmap && \
     ttf-freefont \
     nss
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD="true"
+ENV PUPPETEER_EXECUTABLE_PATH="/usr/bin/chromium-browser"
 ENV CHROMIUM_EXECUTABLE_PATH="/usr/bin/chromium-browser"
 
-RUN npm install -g yarn
+RUN addgroup -S w2t && adduser -S w2t -G w2t -h /app
+WORKDIR /app
+USER w2t
 
-COPY package.json package.json
-COPY yarn.lock yarn.lock
+COPY --chown=w2t /package.json ./
+COPY --chown=w2t /yarn.lock ./
+COPY --chown=w2t /src/modules/facebook_anonymous/package.json ./src/modules/facebook_anonymous/
+COPY --chown=w2t /src/modules/facebook_page/package.json ./src/modules/facebook_page/
+COPY --chown=w2t /src/modules/json/package.json ./src/modules/json/
+COPY --chown=w2t /src/modules/rss/package.json ./src/modules/rss/
+COPY --chown=w2t /src/modules/visual/package.json ./src/modules/visual/
+RUN ls -la
 
 RUN yarn install
 
-COPY ./src ./src
+COPY --chown=w2t /src ./src
 
 ENTRYPOINT ["npm","run","start"]
