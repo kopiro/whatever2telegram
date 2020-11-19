@@ -1,0 +1,11 @@
+{
+  "name": "whatever2telegram-visual",
+  "version": "1.0.0",
+  "description": "",
+  "dependencies": {
+    "pixelmatch": "^5.2.1",
+    "pngjs": "^6.0.0",
+    "puppeteer-extra": "^3.1.15",
+    "puppeteer-extra-plugin-stealth": "^2.6.5"
+  }
+}
