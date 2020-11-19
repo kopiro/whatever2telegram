@@ -14,10 +14,12 @@ RUN apk update && apk add --no-cache nmap && \
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD="true"
 ENV CHROMIUM_EXECUTABLE_PATH="/usr/bin/chromium-browser"
 
-COPY package.json package.json
-COPY package-lock.json package-lock.json
+RUN npm install -g yarn
 
-RUN npm install
+COPY package.json package.json
+COPY yarn.lock yarn.lock
+
+RUN yarn install
 
 COPY ./src ./src
 

@@ -4,7 +4,7 @@
   "description": "Allows forwarding whatever you want to a Telegram handle",
   "private": true,
   "workspaces": [
-    "./src/modules/*"
+    "src/modules/*"
   ],
   "scripts": {
     "start": "node ./src/index.js",
