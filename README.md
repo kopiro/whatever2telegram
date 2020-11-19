@@ -16,8 +16,7 @@ Top-level options are:
 - `doNotDisturb`:
   - `min`: hour of the day (24h) before which modules are not called
   - `max`: hour of the day (24h) after which modules are not called
- 
- 
+
 Example configuration:
 
 ```js
@@ -25,11 +24,11 @@ module.exports = {
   env: "prod",
   sentryDsn: "",
   telegram: {
-    token: ""
+    token: "",
   },
   doNotDisturb: {
     min: 7,
-    max: 23
+    max: 23,
   },
   modules: [
     {
@@ -37,9 +36,9 @@ module.exports = {
       chatIds: ["@MyRSS"],
       name: "rss",
       args: {
-        url: "https://yourwebsite.com/rss"
+        url: "https://yourwebsite.com/rss",
       },
-      fetchInterval: 60 * 10
+      fetchInterval: 60 * 10,
     },
     {
       description: "MyJSON",
@@ -53,7 +52,7 @@ module.exports = {
           "event_description",
           "event_image",
           "link",
-          "registration_open"
+          "registration_open",
         ],
         filter: e => !/^(NYC|LDN)/.test(e.event_name),
       },
@@ -66,14 +65,13 @@ ${decodeURIComponent(e.event_description.output.html)}`;
         return {
           message,
           photo: e.event_image,
-          url: `https://mywebsite.com/${e.link}`
+          url: `https://mywebsite.com/${e.link}`,
         };
       },
-      fetchInterval: 60
-    }
-  ]
+      fetchInterval: 60,
+    },
+  ],
 };
-
 ```
 
 ### Modules
@@ -105,4 +103,12 @@ URL endpoint with JSON data formatting.
 
 URL endpoint with RSS data formatting.
 
-- `url`: URL to fetch.
+- `url`: URL to fetch
+
+#### `visual`
+
+URL endpoint and checks a visual diff of a specific DOM element
+
+- `url`: URL to fetch
+- `element_selector?`: DOM selector that will be visuall diffed
+- `click_selector?`: DOM selector to click before taking screenshot
