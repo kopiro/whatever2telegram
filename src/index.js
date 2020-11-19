@@ -1,8 +1,3 @@
-/* eslint-disable no-param-reassign */
-/* eslint-disable no-continue */
-/* eslint-disable global-require */
-/* eslint-disable import/no-dynamic-require */
-/* eslint-disable no-restricted-syntax */
 const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
@@ -143,9 +138,13 @@ function getModuleExecWrapper(bot, moduleConfig) {
       moduleData.cache = cache;
       moduleData.lastError = null;
     } catch (err) {
-      Sentry.captureException(err);
-      console.error(`Error: ${moduleConfig.description}`, err.message);
+      const fullErrMsg = `Error: ${moduleConfig.description}: ${err.message}`;
+      console.error(fullErrMsg);
       moduleData.lastError = err.message;
+      Sentry.captureException(err);
+      if (config.errorChatId) {
+        bot.sendMessage(config.errorChatId, fullErrMsg);
+      }
     } finally {
       moduleData.lastRunAt = Date.now();
       writeDataForModule(moduleConfig, moduleData);
