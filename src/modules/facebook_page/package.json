@@ -1,0 +1,8 @@
+{
+  "name": "whatever2telegram-facebook_page",
+  "version": "1.0.0",
+  "description": "",
+  "dependencies": {
+    "fb": "^2.0.0"
+  }
+}

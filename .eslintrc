@@ -1,18 +1,22 @@
 {
-  "extends": ["airbnb", "plugin:prettier/recommended"],
   "parserOptions": {
-    "ecmaVersion": 2019,
+    "ecmaVersion": 2019, 
     "sourceType": "module"
   },
+  "plugins": [],
+  "extends": [
+    "airbnb-base",
+    "plugin:prettier/recommended"
+  ],
   "env": {
-    "commonjs": true,
-    "es6": true,
-    "node": true,
-    "jest/globals": true
   },
-  "plugins": ["prettier", "jest"],
   "rules": {
-    "prettier/prettier": "error",
-    "no-console": "off"
+    "no-console": "off",
+    "no-param-reassign": "warn",
+    "no-restricted-syntax": "off",
+    "no-await-in-loop": "off",
+    "no-continue": "off",
+    "no-underscore-dangle": "off",
+    "no-plusplus": "off",
   }
 }

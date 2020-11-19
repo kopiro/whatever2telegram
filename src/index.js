@@ -33,7 +33,7 @@ function readDataForModule(moduleConfig) {
     return data;
   } catch (err) {
     return {
-      processedIdMap: {}
+      processedIdMap: {},
     };
   }
 }
@@ -49,50 +49,41 @@ function getElementHash(element) {
 }
 
 function notifyChange(bot, chatIds, element) {
-  const { photo, url, message } = element;
+  const { photo, url, message, caption } = element;
 
   return Promise.all(
     chatIds.map(async chatId => {
       console.debug(`Sending message to ${chatId}`, element);
 
-      if (photo) {
-        try {
-          bot.sendPhoto(chatId, photo, {
-            disable_notification: true
-          });
-        } catch (err) {
-          console.error("Error in sending photo", err);
-        }
-      }
-
       let finalMessage;
-      const finalOpt = { parse_mode: "html", disable_web_page_preview: true };
+      const safeMessage = striptags(element.message, tagsAllowed);
+      const finalOpt = { parse_mode: "html", disable_web_page_preview: false };
 
       if (message && url) {
-        finalMessage = `${striptags(element.message, tagsAllowed)}\n${url}`;
+        finalMessage = `${safeMessage}${newLine}${url}`;
       } else if (message && !url) {
-        finalMessage = striptags(element.message, tagsAllowed);
+        finalOpt.disable_web_page_preview = true;
+        finalMessage = safeMessage;
       } else if (!message && url) {
         finalMessage = url;
-        finalOpt.disable_web_page_preview = false;
-      } else {
-        return;
       }
 
-      bot.sendMessage(chatId, finalMessage, finalOpt);
-    })
+      if (finalMessage) {
+        bot.sendMessage(chatId, finalMessage, finalOpt);
+      }
+
+      if (photo) {
+        bot.sendPhoto(chatId, photo, {
+          disable_notification: true,
+          caption: caption || "",
+        });
+      }
+    }),
   );
 }
 
 function getModuleExecWrapper(bot, moduleConfig) {
-  const {
-    name = "noop",
-    args = {},
-    chatIds,
-    formatter = e => e,
-    attributes,
-    filter
-  } = moduleConfig;
+  const { name = "noop", args = {}, chatIds, formatter = e => e, attributes = null, filter = e => e } = moduleConfig;
 
   return async () => {
     if (config.doNotDisturb) {
@@ -109,11 +100,7 @@ function getModuleExecWrapper(bot, moduleConfig) {
 
     try {
       const moduleExec = require(`./modules/${name}`);
-      const moduleFetchedData = await moduleExec.fetch(
-        args,
-        moduleData.cache,
-        bot
-      );
+      const moduleFetchedData = await moduleExec.fetch(args, moduleData.cache, bot);
 
       let elements = moduleFetchedData.elements || [];
       const cache = moduleFetchedData.cache || {};
@@ -128,22 +115,17 @@ function getModuleExecWrapper(bot, moduleConfig) {
         elements = elements.map(e =>
           attributes.reduce((carry, attr) => {
             return { ...carry, ...{ [attr]: e[attr] } };
-          }, {})
+          }, {}),
         );
       }
 
-      console.log(
-        `Executed: ${moduleConfig.description} - got ${elements.length}`,
-        cache
-      );
+      console.log(`Executed: ${moduleConfig.description} - got ${elements.length}`, cache);
 
       await sequential(
         elements.map(element => async () => {
           const elementHash = getElementHash(element);
           if (moduleData.processedIdMap[elementHash]) {
-            // console.debug(
-            //   `Already processed ${elementHash} for ${moduleConfig.description}`
-            // );
+            console.debug(`Already processed ${elementHash} for ${moduleConfig.description}`);
             return;
           }
 
@@ -153,12 +135,9 @@ function getModuleExecWrapper(bot, moduleConfig) {
             writeDataForModule(moduleConfig, moduleData);
           } catch (err) {
             Sentry.captureException(err);
-            console.error(
-              `Error in sending chat: ${moduleConfig.description}`,
-              err.message
-            );
+            console.error(`Error in sending chat: ${moduleConfig.description}`, err.message);
           }
-        })
+        }),
       );
 
       moduleData.cache = cache;
@@ -179,9 +158,10 @@ function main() {
 
   const bot = new Tgfancy(telegram.token, {
     polling: telegram.polling,
+    filepath: false,
     tgfancy: {
-      chatIdResolution: false
-    }
+      chatIdResolution: false,
+    },
   });
 
   const botListeners = [];
@@ -206,8 +186,10 @@ function main() {
 
 if (config.sentryDsn) {
   Sentry.init({
-    dsn: config.sentryDsn
+    dsn: config.sentryDsn,
   });
 }
+
+process.setMaxListeners(0);
 
 main();

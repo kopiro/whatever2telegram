@@ -1,9 +1,6 @@
-/*
-Facebook module
-*/
 const puppeteer = require("puppeteer");
 const path = require("path");
-const config = require("../../data/config");
+const config = require("../../../data/config");
 
 const DESKTOP_DOMAIN = "https://www.facebook.com";
 const MOBILE_DOMAIN = "https://m.facebook.com";
@@ -18,7 +15,7 @@ const passSecurityCheck = ({ pageId }, $page, bot) => {
     }
 
     await $page.goto(`${MOBILE_DOMAIN}/${pageId}`, {
-      waitUntil: "networkidle2"
+      waitUntil: "networkidle2",
     });
 
     console.log("Security check required");
@@ -33,14 +30,14 @@ const passSecurityCheck = ({ pageId }, $page, bot) => {
             // eslint-disable-next-line no-param-reassign
             el.value = _text;
           },
-          msg.text
+          msg.text,
         );
         await $page.$eval("form", el => {
           el.submit();
         });
         await $page.waitForNavigation({ waitUntil: "networkidle2" });
         await $page.goto(`${DESKTOP_DOMAIN}/${pageId}`, {
-          waitUntil: "networkidle2"
+          waitUntil: "networkidle2",
         });
         resolve();
       }
@@ -59,7 +56,7 @@ exports.fetch = async (args, cache = {}, bot) => {
     browser = await puppeteer.launch({
       headless: true,
       executablePath: process.env.CHROMIUM_EXECUTABLE_PATH,
-      args: ["--disable-dev-shm-usage", "--no-sandbox", "--disable-gpu"]
+      args: ["--disable-dev-shm-usage", "--no-sandbox", "--disable-gpu"],
     });
     const $page = await browser.newPage();
 
@@ -68,29 +65,23 @@ exports.fetch = async (args, cache = {}, bot) => {
     }
 
     await $page.goto(`https://www.facebook.com/${pageId}`, {
-      waitUntil: "networkidle2"
+      waitUntil: "networkidle2",
     });
 
     await passSecurityCheck(args, $page, bot);
 
     const $post = await $page.waitForSelector(".userContentWrapper", {
-      timeout: 2000
+      timeout: 2000,
     });
 
     const cookies = await $page.cookies();
 
-    const message = await $post.$eval(
-      '[data-testid="post_message"] p',
-      el => el.innerText
-    );
+    const message = await $post.$eval('[data-testid="post_message"] p', el => el.innerText);
     const photo = await $post.$eval("img.scaledImageFitWidth", el => el.src);
 
     let url;
     try {
-      const seeMoreHref = await $post.$eval(
-        `[data-testid="post_message"] a`,
-        el => el.href
-      );
+      const seeMoreHref = await $post.$eval(`[data-testid="post_message"] a`, el => el.href);
 
       if (seeMoreHref) {
         const urlInstance = new URL(seeMoreHref);
@@ -103,8 +94,8 @@ exports.fetch = async (args, cache = {}, bot) => {
     return {
       elements: [{ message, url, photo }],
       cache: {
-        cookies
-      }
+        cookies,
+      },
     };
   } catch (err) {
     throw err;

@@ -1,0 +1,8 @@
+{
+  "name": "whatever2telegram-facebook_anonymous",
+  "version": "1.0.0",
+  "description": "",
+  "dependencies": {
+    "puppeteer": "^5.5.0"
+  }
+}

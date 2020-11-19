@@ -1,8 +1,11 @@
 {
   "name": "whatever2telegram",
   "version": "1.0.0",
-  "description": "",
+  "description": "Allows forwarding whatever you want to a Telegram handle",
   "private": true,
+  "workspaces": [
+    "./src/modules/*"
+  ],
   "scripts": {
     "start": "node ./src/index.js",
     "dev": "pm2-dev start ecosystem.config.js",
@@ -13,27 +16,18 @@
   "license": "MIT",
   "dependencies": {
     "@sentry/node": "^5.11.0",
-    "axios": "^0.18.1",
-    "cheerio": "^1.0.0-rc.3",
-    "fb": "^2.0.0",
     "node-telegram-bot-api": "^0.30.0",
     "pm2": "^4.2.1",
     "promise-sequential": "^1.1.1",
-    "puppeteer": "^2.0.0",
-    "rss-parser": "^3.7.3",
     "striptags": "^3.1.1",
     "tgfancy": "^0.13.0"
   },
   "devDependencies": {
-    "eslint": "^5.3.0",
-    "eslint-config-airbnb": "^17.1.0",
-    "eslint-config-prettier": "^6.1.0",
-    "eslint-plugin-import": "^2.16.0",
-    "eslint-plugin-jest": "^23.1.1",
-    "eslint-plugin-jsx-a11y": "^6.2.1",
-    "eslint-plugin-prettier": "^3.1.2",
-    "eslint-plugin-react": "^7.12.4",
-    "jest": "^24.9.0",
+    "eslint": "^7.13.0",
+    "eslint-config-airbnb-base": "^14.2.1",
+    "eslint-config-prettier": "^6.15.0",
+    "eslint-plugin-import": "^2.22.1",
+    "eslint-plugin-prettier": "^3.1.4",
     "prettier": "^1.19.1"
   }
 }

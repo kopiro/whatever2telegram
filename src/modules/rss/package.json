@@ -1,0 +1,8 @@
+{
+  "name": "whatever2telegram-rss",
+  "version": "1.0.0",
+  "description": "",
+  "dependencies": {
+    "rss-parser": "^3.9.0"
+  }
+}
