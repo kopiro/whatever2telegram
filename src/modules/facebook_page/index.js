@@ -12,9 +12,9 @@ exports.fetch = ({ pageId, accessToken, limit = 1 }) =>
         elements: res.data.map(e => {
           return {
             hash: e.id,
-            message: e.message,
+            // Include the URL in the message to disable previews, as Facebook will show the Login page for metatags anyway
+            message: `${e.message}\n${e.permalink_url}`,
             photo: e.full_picture,
-            url: e.permalink_url,
           };
         }),
       });
