@@ -132,6 +132,7 @@ Available formatters:
 
 ### `translate`
 
-Translate the input message and append the translation.
+Translate the input message.
 
-- `to`: language to translate to, default: `en`
+- `mode`: `replace`, `append` or `prepend`
+- `toLanguage`: language to translate to, default: `en`

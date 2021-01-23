@@ -7,9 +7,8 @@ const striptags = require("striptags");
 const sequential = require("promise-sequential");
 const Sentry = require("@sentry/node");
 const Tgfancy = require("tgfancy");
+const config = require("../config/config");
 const { tagsAllowed, newLine, DATA_DIR } = require("./constants");
-
-const config = require("../data/config");
 
 function geModuleDataFilePath(moduleConfig) {
   const filePath = moduleConfig.description;

@@ -32,4 +32,5 @@ RUN yarn install
 
 COPY --chown=w2t /src ./src
 
+VOLUME /app/data
 ENTRYPOINT ["npm","run","start"]
