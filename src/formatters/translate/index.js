@@ -1,9 +1,10 @@
 const { Translate } = require("@google-cloud/translate").v2;
 
+const TAG = "formatters/translate";
 const translate = new Translate();
 
 exports.default = async (e, _options = {}) => {
-  const options = { toLanguage: "en", ..._options };
+  const options = { toLanguage: "en", mode: "replace", ..._options };
   const [translatedText] = await translate.translate(e.message, { to: options.toLanguage });
   if (options.mode === "replace") {
     e.message = translatedText;
@@ -11,6 +12,8 @@ exports.default = async (e, _options = {}) => {
     e.message = [e.message, translatedText].join("\n\n");
   } else if (options.mode === "prepend") {
     e.message = [translatedText, e.message].join("\n\n");
+  } else {
+    console.error(TAG, "invalid mode", options.mode);
   }
   return e;
 };

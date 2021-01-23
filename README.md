@@ -134,5 +134,5 @@ Available formatters:
 
 Translate the input message.
 
-- `mode`: `replace`, `append` or `prepend`
+- `mode`: `replace`, `append` or `prepend`, default: `replace`
 - `toLanguage`: language to translate to, default: `en`
