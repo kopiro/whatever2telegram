@@ -1,6 +1,6 @@
 const puppeteer = require("puppeteer");
 const path = require("path");
-const config = require("../../../data/config");
+const config = require("../../../config/config");
 
 const DESKTOP_DOMAIN = "https://www.facebook.com";
 const MOBILE_DOMAIN = "https://m.facebook.com";
