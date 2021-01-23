@@ -7,3 +7,4 @@ services:
     volumes:
       - ./src:/app/src
       - ./data:/app/data
+      - ./config:/app/config
