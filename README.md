@@ -56,18 +56,20 @@ module.exports = {
         ],
         filter: e => !/^(NYC|LDN)/.test(e.event_name),
       },
-      formatter: e => {
-        const message = `<b>${e.event_name}</b>
+      formatters: [
+        e => {
+          const message = `<b>${e.event_name}</b>
 from <i>${new Date(e.display_time_start).toGMTString()}</i>
 to <i>${new Date(e.display_time_end).toGMTString()}</i>
 
 ${decodeURIComponent(e.event_description.output.html)}`;
-        return {
-          message,
-          photo: e.event_image,
-          url: `https://mywebsite.com/${e.link}`,
-        };
-      },
+          return {
+            message,
+            photo: e.event_image,
+            url: `https://mywebsite.com/${e.link}`,
+          };
+        },
+      ],
       fetchInterval: 60,
     },
   ],

@@ -25,6 +25,7 @@ COPY --chown=w2t /src/modules/facebook_page/package.json ./src/modules/facebook_
 COPY --chown=w2t /src/modules/json/package.json ./src/modules/json/
 COPY --chown=w2t /src/modules/rss/package.json ./src/modules/rss/
 COPY --chown=w2t /src/modules/visual/package.json ./src/modules/visual/
+COPY --chown=w2t /src/formatters/translate/package.json ./src/formatters/translate/
 RUN ls -la
 
 RUN yarn install

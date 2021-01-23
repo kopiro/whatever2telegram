@@ -1,0 +1,8 @@
+{
+  "name": "whatever2telegram-formatter-translate",
+  "version": "1.0.0",
+  "description": "",
+  "dependencies": {
+    "@google-cloud/translate": "^6.1.0"
+  }
+}
