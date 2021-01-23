@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
@@ -78,7 +80,7 @@ function notifyChange(bot, chatIds, element) {
 }
 
 function getModuleExecWrapper(bot, moduleConfig) {
-  const { name = "noop", args = {}, chatIds, formatter = e => e, attributes = null, filter = e => e } = moduleConfig;
+  const { name = "noop", args = {}, chatIds, formatters = [], attributes = null, filter = e => e } = moduleConfig;
 
   return async () => {
     if (config.doNotDisturb) {
@@ -127,7 +129,22 @@ function getModuleExecWrapper(bot, moduleConfig) {
           }
 
           try {
-            await notifyChange(bot, chatIds, formatter(element));
+            const finalElement = await formatters.reduce(async (carry, formatter) => {
+              if (typeof formatter === "string") {
+                const formatterExec = require(`./formatters/${formatter}`);
+                return formatterExec.default(element);
+              }
+              if (typeof formatter === "object") {
+                const formatterExec = require(`./formatters/${formatter.name}`);
+                return formatterExec.default(element, formatter.options);
+              }
+              if (typeof formatter === "function") {
+                return formatter(element);
+              }
+              console.error("Invalid formatter type", formatter);
+              return element;
+            }, element);
+            await notifyChange(bot, chatIds, finalElement);
             moduleData.processedIdMap[elementHash] = Date.now();
             writeDataForModule(moduleConfig, moduleData);
           } catch (err) {

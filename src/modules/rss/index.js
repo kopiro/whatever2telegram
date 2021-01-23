@@ -8,7 +8,6 @@ exports.fetch = async ({ url }) => {
     return {
       hash: e.guid,
       message: [`<b>${e.title}</b>`, e.content].join("\n"),
-      photo: e.enclosure && e.enclosure.url,
       url: e.link,
     };
   });
