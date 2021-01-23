@@ -78,6 +78,8 @@ ${decodeURIComponent(e.event_description.output.html)}`;
 
 ### Modules
 
+A module is an encapsulated piece of logic to grab data from a source.
+
 Available options to every module:
 
 - `chatIds`: array of Telegram chat ids
@@ -87,6 +89,7 @@ Available options to every module:
 - `description`: unique identifier for this configuration
 - `filter`: filter function that could filter data before being sent
 - `attributes`: filter function for attributes, too minimize payload and diffs
+- `formatters`: list of _formatters_ to apply in sequence
 
 #### `facebook_page`
 
@@ -114,3 +117,21 @@ URL endpoint and checks a visual diff of a specific DOM element
 - `url`: URL to fetch
 - `element_selector?`: DOM selector that will be visuall diffed
 - `click_selector?`: DOM selector to click before taking screenshot
+
+## Formatters
+
+A formatter is a function that receives your output before being sent to be able to manipulate it.
+
+You can define a formatter with:
+
+- a string (the name of formatter)
+- an object like `{ "name": "__NAME__", "options": {} }`
+- a custom JS function
+
+Available formatters:
+
+### `translate`
+
+Translate the input message and append the translation.
+
+- `to`: language to translate to, default: `en`
