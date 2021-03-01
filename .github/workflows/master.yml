@@ -3,6 +3,7 @@ name: 'build'
 on:
   push:
     branches:
+    - main
     - master
   pull_request:
 
@@ -27,4 +28,18 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           push: true
-          tags: ghcr.io/kopiro/whatever2telegram
+          tags: ghcr.io/${{ github.repository }}
+
+  notify:
+    name: "Notify"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Notify"
+        uses: fjogeleit/http-request-action@v1.7.3
+        with:
+          url: ${{ secrets.NOTIFY_URL }}
+          method: POST
+          data: "${{ github.repository }}"
+          bearerToken: ${{ secrets.NOTIFY_TOKEN }}
+          preventFailureOnNoResponse: true
+          timeout: 60000
