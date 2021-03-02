@@ -29,12 +29,7 @@ jobs:
         with:
           push: true
           tags: ghcr.io/${{ github.repository }}
-
-  notify:
-    name: "Notify"
-    runs-on: ubuntu-latest
-    steps:
-      - name: "Notify"
+      - name: Notify
         uses: fjogeleit/http-request-action@v1.7.3
         with:
           url: ${{ secrets.NOTIFY_URL }}
