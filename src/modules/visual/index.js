@@ -98,7 +98,7 @@ async function checkUpdates(screenshotPath, browser, name, url, selector, clickS
   }
 }
 
-exports.fetch = async ({ screenshotDirName, sites, headless }, cache, bot, callback) => {
+exports.fetch = async ({ screenshotDirName, sites, headless }, cache = {}, callback) => {
   const screenshotPath = path.join(VISUAL_DATA_DIR, screenshotDirName || "__visual__");
   fs.mkdirSync(screenshotPath, { recursive: true });
 

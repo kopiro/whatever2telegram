@@ -137,8 +137,6 @@ async function processElement(element, moduleData, moduleConfig, bot) {
 }
 
 function getModuleExecWrapper(bot, moduleConfig) {
-  const { name = "noop", args = {} } = moduleConfig;
-
   return async () => {
     if (config.doNotDisturb) {
       const { min, max } = config.doNotDisturb;
@@ -151,16 +149,16 @@ function getModuleExecWrapper(bot, moduleConfig) {
     }
 
     const moduleData = readDataForModule(moduleConfig);
+    const callback = element => processElement(element, moduleData, moduleConfig, bot);
 
     try {
-      const moduleExec = require(`./modules/${name}`);
+      const moduleExec = require(`./modules/${moduleConfig.name}`);
 
       console.debug(`Executing script <${moduleConfig.description}>`);
-      const moduleFetchedData = await moduleExec.fetch(args, moduleData.cache, bot);
+      const moduleFetchedData = await moduleExec.fetch(moduleConfig.args, moduleData.cache, callback);
 
       if (moduleFetchedData) {
-        const elements = moduleFetchedData.elements || [];
-        const cache = moduleFetchedData.cache || {};
+        const { elements, cache } = moduleFetchedData;
         for (const element of elements) {
           try {
             await processElement(element, moduleData, moduleConfig);
@@ -168,7 +166,7 @@ function getModuleExecWrapper(bot, moduleConfig) {
             reportError(bot, err);
           }
         }
-        moduleData.cache = cache;
+        moduleData.cache = cache || {};
         moduleData.lastError = null;
       }
     } catch (err) {

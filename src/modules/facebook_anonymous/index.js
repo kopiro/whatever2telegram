@@ -97,8 +97,6 @@ exports.fetch = async (args, cache = {}, bot) => {
         cookies,
       },
     };
-  } catch (err) {
-    throw err;
   } finally {
     await browser.close();
   }
