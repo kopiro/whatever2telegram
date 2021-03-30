@@ -94,6 +94,7 @@ async function checkUpdates(screenshotPath, browser, name, url, selector, clickS
   } finally {
     fs.copyFileSync(newScreenshot, oldScreenshot);
     fs.unlinkSync(fullScreenshot);
+    page.close();
   }
 }
 
@@ -106,13 +107,18 @@ exports.fetch = async ({ screenshotDirName, sites, headless }) => {
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
   });
   try {
-    const data = (
-      await Promise.allSettled(
-        sites.map(site =>
-          checkUpdates(screenshotPath, browser, site.name, site.url, site.element_selector, site.click_selector),
-        ),
-      )
-    ).map(e => e.value);
+    const data = [];
+    for (const site of sites) {
+      const e = await checkUpdates(
+        screenshotPath,
+        browser,
+        site.name,
+        site.url,
+        site.element_selector,
+        site.click_selector,
+      );
+      data.push(e.value);
+    }
     return {
       elements: data,
     };
