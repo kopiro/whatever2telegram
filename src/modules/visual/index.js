@@ -97,11 +97,14 @@ async function checkUpdates(screenshotPath, browser, name, url, selector, clickS
   }
 }
 
-exports.fetch = async ({ screenshotDirName, sites }) => {
-  const screenshotPath = path.join(VISUAL_DATA_DIR, screenshotDirName);
+exports.fetch = async ({ screenshotDirName, sites, headless }) => {
+  const screenshotPath = path.join(VISUAL_DATA_DIR, screenshotDirName || "__visual__");
   fs.mkdirSync(screenshotPath, { recursive: true });
 
-  const browser = await puppeteer.launch({ headless: true, args: ["--no-sandbox", "--disable-setuid-sandbox"] });
+  const browser = await puppeteer.launch({
+    headless: headless !== undefined ? headless : true,
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+  });
   try {
     const data = (
       await Promise.allSettled(
