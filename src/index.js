@@ -1,14 +1,21 @@
+/* eslint-disable global-require */
+/* eslint-disable import/no-dynamic-require */
 require("dotenv").config();
 
 const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
 const striptags = require("striptags");
-const sequential = require("promise-sequential");
-const Sentry = require("@sentry/node");
 const Tgfancy = require("tgfancy");
 const config = require("../config/config");
 const { tagsAllowed, newLine, DATA_DIR } = require("./constants");
+
+function reportError(bot, ...err) {
+  console.error(...err);
+  if (config.errorChatId) {
+    bot.sendMessage(config.errorChatId, JSON.stringify(err));
+  }
+}
 
 function geModuleDataFilePath(moduleConfig) {
   const filePath = moduleConfig.description;
@@ -78,8 +85,59 @@ function notifyChange(bot, chatIds, element) {
   );
 }
 
+async function processElement(element, moduleData, moduleConfig, bot) {
+  const { chatIds, formatters = [], attributes = null, filter = e => e } = moduleConfig;
+
+  // Filtering elements
+  if (filter) {
+    if (!filter(element)) {
+      return false;
+    }
+  }
+
+  // Filtering attributes
+  if (attributes) {
+    // eslint-disable-next-line no-param-reassign
+    element = attributes.reduce((carry, attr) => {
+      return { ...carry, ...{ [attr]: element[attr] } };
+    }, {});
+  }
+
+  console.log(`Executing ${moduleConfig.description}`, element, moduleData.cache);
+
+  const elementHash = getElementHash(element);
+  if (moduleData.processedIdMap[elementHash]) {
+    console.debug(`Already processed ${elementHash} for ${moduleConfig.description}`);
+    return null;
+  }
+
+  const finalElement = await formatters.reduce(async (carry, formatter) => {
+    if (typeof formatter === "string") {
+      const formatterExec = require(`./formatters/${formatter}`);
+      return formatterExec.default(carry);
+    }
+    if (typeof formatter === "object") {
+      const formatterExec = require(`./formatters/${formatter.name}`);
+      return formatterExec.default(carry, formatter.options);
+    }
+    if (typeof formatter === "function") {
+      return formatter(carry);
+    }
+    reportError(bot, "Invalid formatter type", formatter);
+    return carry;
+  }, element);
+
+  await notifyChange(bot, chatIds, finalElement);
+
+  // eslint-disable-next-line no-param-reassign
+  moduleData.processedIdMap[elementHash] = Date.now();
+  writeDataForModule(moduleConfig, moduleData);
+
+  return true;
+}
+
 function getModuleExecWrapper(bot, moduleConfig) {
-  const { name = "noop", args = {}, chatIds, formatters = [], attributes = null, filter = e => e } = moduleConfig;
+  const { name = "noop", args = {} } = moduleConfig;
 
   return async () => {
     if (config.doNotDisturb) {
@@ -100,69 +158,23 @@ function getModuleExecWrapper(bot, moduleConfig) {
       console.debug(`Executing script <${moduleConfig.description}>`);
       const moduleFetchedData = await moduleExec.fetch(args, moduleData.cache, bot);
 
-      let elements = moduleFetchedData.elements || [];
-      const cache = moduleFetchedData.cache || {};
-
-      // Filtering elements
-      if (filter) {
-        elements = elements.filter(filter);
-      }
-
-      // Filtering attributes
-      if (attributes) {
-        elements = elements.map(e =>
-          attributes.reduce((carry, attr) => {
-            return { ...carry, ...{ [attr]: e[attr] } };
-          }, {}),
-        );
-      }
-
-      console.log(`Executed: ${moduleConfig.description} - got ${elements.length}`, cache);
-
-      await sequential(
-        elements.map(element => async () => {
-          const elementHash = getElementHash(element);
-          if (moduleData.processedIdMap[elementHash]) {
-            console.debug(`Already processed ${elementHash} for ${moduleConfig.description}`);
-            return;
-          }
-
+      if (moduleFetchedData) {
+        const elements = moduleFetchedData.elements || [];
+        const cache = moduleFetchedData.cache || {};
+        for (const element of elements) {
           try {
-            const finalElement = await formatters.reduce(async (carry, formatter) => {
-              if (typeof formatter === "string") {
-                const formatterExec = require(`./formatters/${formatter}`);
-                return formatterExec.default(element);
-              }
-              if (typeof formatter === "object") {
-                const formatterExec = require(`./formatters/${formatter.name}`);
-                return formatterExec.default(element, formatter.options);
-              }
-              if (typeof formatter === "function") {
-                return formatter(element);
-              }
-              console.error("Invalid formatter type", formatter);
-              return element;
-            }, element);
-            await notifyChange(bot, chatIds, finalElement);
-            moduleData.processedIdMap[elementHash] = Date.now();
-            writeDataForModule(moduleConfig, moduleData);
+            await processElement(element, moduleData, moduleConfig);
           } catch (err) {
-            Sentry.captureException(err);
-            console.error(`Error in sending chat: ${moduleConfig.description}`, err.message);
+            reportError(bot, err);
           }
-        }),
-      );
-
-      moduleData.cache = cache;
-      moduleData.lastError = null;
+        }
+        moduleData.cache = cache;
+        moduleData.lastError = null;
+      }
     } catch (err) {
       const fullErrMsg = `Error: ${moduleConfig.description}: ${err.message}`;
-      console.error(fullErrMsg);
       moduleData.lastError = err.message;
-      Sentry.captureException(err);
-      if (config.errorChatId) {
-        bot.sendMessage(config.errorChatId, fullErrMsg);
-      }
+      reportError(bot, fullErrMsg);
     } finally {
       moduleData.lastRunAt = Date.now();
       writeDataForModule(moduleConfig, moduleData);
@@ -205,12 +217,5 @@ function main() {
   });
 }
 
-if (config.sentryDsn) {
-  Sentry.init({
-    dsn: config.sentryDsn,
-  });
-}
-
 process.setMaxListeners(0);
-
 main();

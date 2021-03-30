@@ -98,7 +98,7 @@ async function checkUpdates(screenshotPath, browser, name, url, selector, clickS
   }
 }
 
-exports.fetch = async ({ screenshotDirName, sites, headless }) => {
+exports.fetch = async ({ screenshotDirName, sites, headless }, cache, bot, callback) => {
   const screenshotPath = path.join(VISUAL_DATA_DIR, screenshotDirName || "__visual__");
   fs.mkdirSync(screenshotPath, { recursive: true });
 
@@ -107,7 +107,6 @@ exports.fetch = async ({ screenshotDirName, sites, headless }) => {
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
   });
   try {
-    const data = [];
     for (const site of sites) {
       const e = await checkUpdates(
         screenshotPath,
@@ -117,11 +116,8 @@ exports.fetch = async ({ screenshotDirName, sites, headless }) => {
         site.element_selector,
         site.click_selector,
       );
-      data.push(e.value);
+      callback(e);
     }
-    return {
-      elements: data,
-    };
   } finally {
     console.debug(pkg.name, "Closing browser");
     browser.close();
