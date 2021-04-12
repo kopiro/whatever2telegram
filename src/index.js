@@ -161,7 +161,7 @@ function getModuleExecWrapper(bot, moduleConfig) {
         const { elements, cache } = moduleFetchedData;
         for (const element of elements) {
           try {
-            await processElement(element, moduleData, moduleConfig);
+            await processElement(element, moduleData, moduleConfig, bot);
           } catch (err) {
             reportError(bot, "processElement", err);
           }
