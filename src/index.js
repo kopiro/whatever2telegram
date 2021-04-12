@@ -163,16 +163,16 @@ function getModuleExecWrapper(bot, moduleConfig) {
           try {
             await processElement(element, moduleData, moduleConfig);
           } catch (err) {
-            reportError(bot, err);
+            reportError(bot, "processElement", err);
           }
         }
         moduleData.cache = cache || {};
         moduleData.lastError = null;
       }
     } catch (err) {
-      const fullErrMsg = `Error: ${moduleConfig.description}: ${err.message}`;
+      const fullErrMsg = `${moduleConfig.description}: ${err.message}`;
       moduleData.lastError = err.message;
-      reportError(bot, fullErrMsg);
+      reportError(bot, "moduleExec", fullErrMsg);
     } finally {
       moduleData.lastRunAt = Date.now();
       writeDataForModule(moduleConfig, moduleData);
