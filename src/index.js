@@ -10,10 +10,12 @@ const Tgfancy = require("tgfancy");
 const config = require("../config/config");
 const { tagsAllowed, newLine, DATA_DIR } = require("./constants");
 
+process.env.GOOGLE_APPLICATION_CREDENTIALS = path.join(__dirname, "..", "config", "gcloud.json");
+
 function reportError(bot, ...err) {
   console.error(...err);
   if (config.errorChatId) {
-    bot.sendMessage(config.errorChatId, JSON.stringify(err));
+    bot.sendMessage(config.errorChatId, String(err) || JSON.stringify(err));
   }
 }
 
@@ -52,7 +54,7 @@ function getElementHash(element) {
 }
 
 function notifyChange(bot, chatIds, element) {
-  const { photo, url, message, caption } = element;
+  const { photo, url, message, caption, footer } = element;
 
   return Promise.all(
     chatIds.map(async chatId => {
@@ -71,7 +73,12 @@ function notifyChange(bot, chatIds, element) {
         finalMessage = url;
       }
 
+      if (footer) {
+        finalMessage = `${finalMessage}${newLine}${newLine}<i>${footer}</i>`;
+      }
+
       if (finalMessage) {
+        console.log("Sending finalMessage", finalMessage, finalOpt);
         bot.sendMessage(chatId, finalMessage, finalOpt);
       }
 
