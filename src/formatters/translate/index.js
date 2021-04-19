@@ -25,7 +25,7 @@ exports.default = async (e, _options = {}) => {
   }
 
   if (e.url && options.appendTranslatedURL) {
-    e.footer = `Translated URL: ${getTranslatedURL(e.url, options.toLanguage)}`;
+    e.footer = `<a href="${getTranslatedURL(e.url, options.toLanguage)}">Translated page</a>`;
   }
 
   return e;
