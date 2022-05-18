@@ -11,10 +11,10 @@ const { newLine, DATA_DIR } = require("./constants");
 
 process.env.GOOGLE_APPLICATION_CREDENTIALS = path.join(__dirname, "..", "config", "gcloud.json");
 
-function reportError(bot, ...err) {
-  console.error(...err);
+function reportError(bot, ...args) {
+  console.error(...args);
   if (config.errorChatId) {
-    bot.sendMessage(config.errorChatId, String(err) || JSON.stringify(err));
+    bot.sendMessage(config.errorChatId, `\`\`\`\n${JSON.stringify(args)}\n\`\`\``);
   }
 }
 
@@ -172,16 +172,15 @@ function getModuleExecWrapper(bot, moduleConfig) {
           try {
             await processElement(element, moduleData, moduleConfig, bot);
           } catch (err) {
-            reportError(bot, "processElement", err);
+            reportError(bot, "processElement", { element, err });
           }
         }
         moduleData.cache = cache || {};
         moduleData.lastError = null;
       }
     } catch (err) {
-      const fullErrMsg = `${moduleConfig.description}: ${err.message}`;
-      moduleData.lastError = err.message;
-      reportError(bot, "moduleExec", fullErrMsg);
+      moduleData.lastError = err;
+      reportError(bot, "moduleExec", { moduleConfig, err });
     } finally {
       moduleData.lastRunAt = Date.now();
       writeDataForModule(moduleConfig, moduleData);
