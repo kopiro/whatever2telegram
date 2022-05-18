@@ -45,30 +45,15 @@ module.exports = {
       chatIds: ["@MyJSON"],
       name: "json",
       args: {
-        attributes: [
-          "event_name",
-          "display_time_start",
-          "display_time_end",
-          "event_description",
-          "event_image",
-          "link",
-          "registration_open",
-        ],
-        filter: e => !/^(NYC|LDN)/.test(e.event_name),
+        url: "http://myjson.com",
       },
+      mapper: data => data.result.filter(e => e.location === "Stockholm").map(e => ({ ...e, hash: e.event_id })),
       formatters: [
-        e => {
-          const message = `<b>${e.event_name}</b>
-from <i>${new Date(e.display_time_start).toGMTString()}</i>
-to <i>${new Date(e.display_time_end).toGMTString()}</i>
-
-${decodeURIComponent(e.event_description.output.html)}`;
-          return {
-            message,
-            photo: e.event_image,
-            url: `https://mywebsite.com/${e.link}`,
-          };
-        },
+        e => ({
+          message: "<b>${e.title} at ${e.date}<b>",
+          photo: e.event_image,
+          url: `https:${e.url}`,
+        }),
       ],
       fetchInterval: 60,
     },
@@ -76,7 +61,7 @@ ${decodeURIComponent(e.event_description.output.html)}`;
 };
 ```
 
-### Modules
+## Modules
 
 A module is an encapsulated piece of logic to grab data from a source.
 
@@ -86,33 +71,39 @@ Available options to every module:
 - `fetchInterval`: how often (in seconds) data should be fetched
 - `name`: name of the module
 - `args`: arguments to pass to the modules
-- `mapper?`: JS function to invoke to parse the response and return an array of elements
 - `description`: unique identifier for this configuration
-- `filter?`: filter function that could filter data before being sent
-- `attributes?`: filter function for attributes, too minimize payload and diffs
-- `formatters?`: list of _formatters_ to apply in sequence
+- `formatters[]?`: list of _formatters_ to apply in sequence
 
-#### `facebook_page`
+#### `mapper`
+
+The `mapper` attribute is a JS function to invoke to parse the response and return an array of elements.
+
+This function can filter and only returns attributes of your element that you want to diff against previous runs,
+to understand to process the element or not.
+
+If the mapper returns an `hash` attribute, the check against the attributes will be skipped and `hash` will be used instead.
+
+### `facebook_page`
 
 Facebook page posts.
 
 - `pageId`: Facebook page-id
 - `accessToken`: Extended access token
 
-#### `json`
+### `json`
 
 URL endpoint with JSON data formatting.
 
 - `url`: URL to fetch
 - `headers?`: HTTP headers
 
-#### `rss`
+### `rss`
 
 URL endpoint with RSS data formatting.
 
 - `url`: URL to fetch
 
-#### `visual`
+### `visual`
 
 URL endpoint and checks a visual diff of a specific DOM element
 

@@ -93,22 +93,7 @@ function notifyChange(bot, chatIds, element) {
 }
 
 async function processElement(element, moduleData, moduleConfig, bot) {
-  const { chatIds, formatters = [], attributes = null, filter = e => e } = moduleConfig;
-
-  // Filtering elements
-  if (filter) {
-    if (!filter(element)) {
-      return false;
-    }
-  }
-
-  // Filtering attributes
-  if (attributes) {
-    // eslint-disable-next-line no-param-reassign
-    element = attributes.reduce((carry, attr) => {
-      return { ...carry, ...{ [attr]: element[attr] } };
-    }, {});
-  }
+  const { chatIds, formatters = [] } = moduleConfig;
 
   const elementHash = getElementHash(element);
   if (moduleData.processedIdMap[elementHash]) {
