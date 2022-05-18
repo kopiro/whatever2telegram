@@ -1,7 +1,7 @@
 const axios = require("axios");
 const { baseHTTPHeaders } = require("../../constants");
 
-exports.fetch = async ({ url, headers }, cache = {}) => {
+exports.fetch = async ({ url, headers = {}, mapper = (e) => (e) }, cache = {}) => {
   const finalHeaders = {
     ...baseHTTPHeaders,
     ...headers,
@@ -15,6 +15,6 @@ exports.fetch = async ({ url, headers }, cache = {}) => {
   });
 
   return {
-    elements: response.data,
+    elements: mapper(response.data),
   };
 };
