@@ -83,11 +83,10 @@ function notifyChange(bot, chatIds, element) {
 
       if (photo) {
         console.log(`Sending photo to ${chatId}`, photo);
-        const resultPhoto = await bot.sendPhoto(chatId, photo, {
+        bot.sendPhoto(chatId, photo, {
           disable_notification: !!finalMessage,
           caption: caption || "",
         });
-        console.log("Photo sent", photo, resultPhoto);
       }
     }),
   );
