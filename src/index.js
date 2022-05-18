@@ -110,13 +110,13 @@ async function processElement(element, moduleData, moduleConfig, bot) {
     }, {});
   }
 
-  console.log(`Executing ${moduleConfig.description}`, element, moduleData.cache);
-
   const elementHash = getElementHash(element);
   if (moduleData.processedIdMap[elementHash]) {
     console.debug(`Already processed ${elementHash} for ${moduleConfig.description}`);
     return null;
   }
+
+  console.log(`Executing ${moduleConfig.description} -> `, element);
 
   const finalElement = await formatters.reduce(async (carry, formatter) => {
     if (typeof formatter === "string") {
