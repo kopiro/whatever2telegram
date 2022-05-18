@@ -1,13 +1,13 @@
 const axios = require("axios");
 const { baseHTTPHeaders } = require("../../constants");
 
-exports.fetch = async ({ url, headers = {}, mapper = (e) => (e) }, cache = {}) => {
+exports.fetch = async ({ url, headers = {} }, cache = {}) => {
   const finalHeaders = {
     ...baseHTTPHeaders,
     ...headers,
     ...(cache.etag ? { "if-none-match": cache.etag } : {}),
   };
-  const response = await axios({
+  const { data, headers: responseHeaders } = await axios({
     url,
     responseType: "json",
     headers: finalHeaders,
@@ -15,6 +15,9 @@ exports.fetch = async ({ url, headers = {}, mapper = (e) => (e) }, cache = {}) =
   });
 
   return {
-    elements: mapper(response.data),
+    data,
+    cache: {
+      etag: responseHeaders.etag,
+    },
   };
 };

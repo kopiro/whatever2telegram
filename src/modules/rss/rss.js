@@ -13,6 +13,6 @@ exports.fetch = async ({ url }) => {
   });
 
   return {
-    elements: data,
+    data,
   };
 };

@@ -5,10 +5,9 @@ require("dotenv").config();
 const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
-const striptags = require("striptags");
 const Tgfancy = require("tgfancy");
 const config = require("../config/config");
-const { tagsAllowed, newLine, DATA_DIR } = require("./constants");
+const { newLine, DATA_DIR } = require("./constants");
 
 process.env.GOOGLE_APPLICATION_CREDENTIALS = path.join(__dirname, "..", "config", "gcloud.json");
 
@@ -55,20 +54,18 @@ function getElementHash(element) {
 
 function notifyChange(bot, chatIds, element) {
   const { photo, url, message, caption, footer } = element;
+  console.debug(`Element to process: `, element);
 
   return Promise.all(
     chatIds.map(async chatId => {
-      console.debug(`Sending message to ${chatId}`, element);
-
       let finalMessage;
-      const safeMessage = striptags(element.message, tagsAllowed);
       const finalOpt = { parse_mode: "html", disable_web_page_preview: false };
 
       if (message && url) {
-        finalMessage = `${safeMessage}${newLine}${url}`;
+        finalMessage = `${message}${newLine}${url}`;
       } else if (message && !url) {
         finalOpt.disable_web_page_preview = true;
-        finalMessage = safeMessage;
+        finalMessage = message;
       } else if (!message && url) {
         finalMessage = url;
       }
@@ -78,15 +75,19 @@ function notifyChange(bot, chatIds, element) {
       }
 
       if (finalMessage) {
-        console.log("Sending finalMessage", finalMessage, finalOpt);
-        bot.sendMessage(chatId, finalMessage, finalOpt);
+        const result = await bot.sendMessage(chatId, finalMessage, finalOpt);
+        console.log("Message sent", finalMessage, finalOpt, result);
+      } else {
+        console.warn("No message to send");
       }
 
       if (photo) {
-        bot.sendPhoto(chatId, photo, {
+        console.log(`Sending photo to ${chatId}`, photo);
+        const resultPhoto = await bot.sendPhoto(chatId, photo, {
           disable_notification: !!finalMessage,
           caption: caption || "",
         });
+        console.log("Photo sent", photo, resultPhoto);
       }
     }),
   );
@@ -159,13 +160,15 @@ function getModuleExecWrapper(bot, moduleConfig) {
     const callback = element => processElement(element, moduleData, moduleConfig, bot);
 
     try {
-      const moduleExec = require(`./modules/${moduleConfig.name}`);
+      const moduleExec = require(`./modules/${moduleConfig.name}/${moduleConfig.name}.js`);
 
       console.debug(`Executing script <${moduleConfig.description}>`);
       const moduleFetchedData = await moduleExec.fetch(moduleConfig.args, moduleData.cache, callback);
 
       if (moduleFetchedData) {
-        const { elements, cache } = moduleFetchedData;
+        const { data, cache } = moduleFetchedData;
+        const elements = moduleConfig.mapper ? moduleConfig.mapper(data) : data;
+
         for (const element of elements) {
           try {
             await processElement(element, moduleData, moduleConfig, bot);

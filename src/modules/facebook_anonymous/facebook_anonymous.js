@@ -92,7 +92,7 @@ exports.fetch = async (args, cache = {}, bot) => {
     } catch (err) {}
 
     return {
-      elements: [{ message, url, photo }],
+      data: [{ message, url, photo }],
       cache: {
         cookies,
       },

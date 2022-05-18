@@ -86,6 +86,7 @@ Available options to every module:
 - `fetchInterval`: how often (in seconds) data should be fetched
 - `name`: name of the module
 - `args`: arguments to pass to the modules
+- `mapper?`: JS function to invoke to parse the response and return an array of elements
 - `description`: unique identifier for this configuration
 - `filter?`: filter function that could filter data before being sent
 - `attributes?`: filter function for attributes, too minimize payload and diffs
@@ -104,7 +105,6 @@ URL endpoint with JSON data formatting.
 
 - `url`: URL to fetch
 - `headers?`: HTTP headers
-- `mapper?`: JS function to invoke to parse the response and return an array of elements
 
 #### `rss`
 

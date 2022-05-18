@@ -9,7 +9,7 @@ exports.fetch = ({ pageId, accessToken, limit = 1 }) =>
         return;
       }
       resolve({
-        elements: res.data.map(e => {
+        data: res.data.map(e => {
           return {
             hash: e.id,
             // Include the URL in the message to disable previews, as Facebook will show the Login page for metatags anyway
