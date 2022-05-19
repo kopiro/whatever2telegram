@@ -195,7 +195,7 @@ function main() {
     botListeners.forEach(fn => fn(msg));
   });
 
-  modules.forEach(moduleConfig => {
+  modules.forEach((moduleConfig, index) => {
     if (moduleConfig.disabled) {
       return;
     }
@@ -203,7 +203,8 @@ function main() {
     const { fetchInterval = 60 } = moduleConfig;
     const moduleExec = getModuleExecWrapper(bot, moduleConfig);
 
-    moduleExec();
+    // Start with a slight delay in the beginning
+    setTimeout(moduleExec, index * 1000);
     setInterval(moduleExec, fetchInterval * 1000);
   });
 }
