@@ -119,7 +119,13 @@ async function processElement(element, moduleData, moduleConfig, bot) {
     return carry;
   }, element);
 
-  await notifyChange(bot, chatIds, finalElement);
+  let _chatIds = chatIds;
+  if (config.env === "dev") {
+    console.log("Replacing chatIds with dev chatIds");
+    _chatIds = [config.errorChatId];
+  }
+
+  await notifyChange(bot, _chatIds, finalElement);
 
   // eslint-disable-next-line no-param-reassign
   moduleData.processedIdMap[elementHash] = Date.now();
@@ -130,7 +136,7 @@ async function processElement(element, moduleData, moduleConfig, bot) {
 
 function getModuleExecWrapper(bot, moduleConfig) {
   return async () => {
-    if (config.doNotDisturb) {
+    if (config.env !== "dev" && config.doNotDisturb) {
       const { min, max } = config.doNotDisturb;
       const now = new Date();
       const hour = now.getUTCHours();
