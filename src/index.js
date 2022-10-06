@@ -154,7 +154,7 @@ async function processElement(element, moduleData, moduleConfig, bot) {
 
 function getModuleExecWrapper(bot, moduleConfig) {
   return async () => {
-    if (config.env !== "dev" && config.doNotDisturb) {
+    if (config.doNotDisturb) {
       const { min, max } = config.doNotDisturb;
       const now = new Date();
       const hour = now.getUTCHours();
