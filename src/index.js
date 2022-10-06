@@ -1,3 +1,4 @@
+/* eslint-disable no-param-reassign */
 /* eslint-disable global-require */
 /* eslint-disable import/no-dynamic-require */
 require("dotenv").config();
@@ -31,15 +32,17 @@ function writeDataForModule(moduleConfig, data) {
 function readDataForModule(moduleConfig) {
   const filePath = geModuleDataFilePath(moduleConfig);
 
+  let data = {};
   try {
-    const data = JSON.parse(fs.readFileSync(filePath));
-    if (!data) throw new Error();
-    return data;
+    data = JSON.parse(fs.readFileSync(filePath)) || {};
   } catch (err) {
-    return {
-      processedIdMap: {},
-    };
+    data = {};
   }
+
+  data.processedIdMap = data.processedIdMap || {};
+  data.erroredIdMap = data.erroredIdMap || {};
+
+  return data;
 }
 
 function getElementHash(element) {
@@ -53,6 +56,11 @@ function getElementHash(element) {
 }
 
 function notifyChange(bot, chatIds, element) {
+  if (config.env === "dev" || process.env.NODE_ENV === "development") {
+    console.log("Replacing chatIds with dev chatIds");
+    chatIds = [config.errorChatId];
+  }
+
   const { photo, url, message, caption, footer } = element;
   console.debug(`Element to process: `, element);
 
@@ -96,42 +104,52 @@ async function processElement(element, moduleData, moduleConfig, bot) {
   const { chatIds, formatters = [] } = moduleConfig;
 
   const elementHash = getElementHash(element);
-  if (moduleData.processedIdMap[elementHash]) {
-    console.debug(`Already processed ${elementHash} for ${moduleConfig.description}`);
+  const alreadyProcessed = moduleData.processedIdMap[elementHash];
+  const previousProcessingError = moduleData.erroredIdMap[elementHash] || {};
+
+  const elementDescription = `${moduleConfig.description} (${elementHash})`;
+
+  if (alreadyProcessed) {
+    console.debug(`${elementDescription} has already been processed at t = ${alreadyProcessed}`);
     return null;
   }
 
-  console.log(`Executing ${moduleConfig.description} -> `, element);
-
-  const finalElement = await formatters.reduce(async (carry, formatter) => {
-    if (typeof formatter === "string") {
-      const formatterExec = require(`./formatters/${formatter}`);
-      return formatterExec.default(carry);
-    }
-    if (typeof formatter === "object") {
-      const formatterExec = require(`./formatters/${formatter.name}`);
-      return formatterExec.default(carry, formatter.options);
-    }
-    if (typeof formatter === "function") {
-      return formatter(carry);
-    }
-    reportError(bot, "Invalid formatter type", formatter);
-    return carry;
-  }, element);
-
-  let _chatIds = chatIds;
-  if (config.env === "dev") {
-    console.log("Replacing chatIds with dev chatIds");
-    _chatIds = [config.errorChatId];
+  if (previousProcessingError && previousProcessingError.tries > 3) {
+    console.debug(`${elementDescription} has already errored 3 times, skipping it`);
+    return null;
   }
 
-  await notifyChange(bot, _chatIds, finalElement);
+  try {
+    console.log(`${elementDescription} is executing -> `, element);
 
-  // eslint-disable-next-line no-param-reassign
-  moduleData.processedIdMap[elementHash] = Date.now();
-  writeDataForModule(moduleConfig, moduleData);
+    const finalElement = await formatters.reduce(async (carry, formatter) => {
+      if (typeof formatter === "string") {
+        const formatterExec = require(`./formatters/${formatter}`);
+        return formatterExec.default(carry);
+      }
+      if (typeof formatter === "object") {
+        const formatterExec = require(`./formatters/${formatter.name}`);
+        return formatterExec.default(carry, formatter.options);
+      }
+      if (typeof formatter === "function") {
+        return formatter(carry);
+      }
+      throw new Error(`Invalid formatter type "${formatter}" for ${elementDescription}`);
+    }, element);
 
-  return true;
+    await notifyChange(bot, chatIds, finalElement);
+    console.debug(`${elementDescription} succedeed`);
+
+    moduleData.processedIdMap[elementHash] = Date.now();
+    return true;
+  } catch (err) {
+    console.debug(`${elementDescription} errored: "${err.message}"`);
+    moduleData.erroredIdMap[elementHash] = { error: err.message, tries: (previousProcessingError.tries || 0) + 1 };
+    reportError(bot, "processElement", { element, err });
+    return false;
+  } finally {
+    writeDataForModule(moduleConfig, moduleData);
+  }
 }
 
 function getModuleExecWrapper(bot, moduleConfig) {
@@ -160,11 +178,7 @@ function getModuleExecWrapper(bot, moduleConfig) {
         const elements = moduleConfig.mapper ? moduleConfig.mapper(data) : data;
 
         for (const element of elements) {
-          try {
-            await processElement(element, moduleData, moduleConfig, bot);
-          } catch (err) {
-            reportError(bot, "processElement", { element, err });
-          }
+          await processElement(element, moduleData, moduleConfig, bot);
         }
         moduleData.cache = cache || {};
         moduleData.lastError = null;
