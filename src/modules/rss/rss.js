@@ -7,7 +7,7 @@ exports.fetch = async ({ url }) => {
   const data = feed.items.map(e => {
     return {
       hash: e.guid,
-      message: [`<b>${e.title}</b>`, e.content].join("\n"),
+      message: [`<b>${e.title.trim()}</b>`, e.content.trim()].join("\n"),
       url: e.link,
     };
   });
