@@ -66,21 +66,12 @@ function notifyChange(bot, chatIds, element) {
 
   return Promise.all(
     chatIds.map(async chatId => {
-      let finalMessage;
       const finalOpt = { parse_mode: "html", disable_web_page_preview: false };
 
-      if (message && url) {
-        finalMessage = `${message}${newLine}${url}`;
-      } else if (message && !url) {
-        finalOpt.disable_web_page_preview = true;
-        finalMessage = message;
-      } else if (!message && url) {
-        finalMessage = url;
-      }
-
-      if (footer) {
-        finalMessage = `${finalMessage}${newLine}${newLine}<i>${footer}</i>`;
-      }
+      const finalMessage = [message, url, footer ? `<i>${footer}</i>` : null]
+        .map(e => (e ? e.trim() : e))
+        .filter(e => e)
+        .join(newLine);
 
       if (finalMessage) {
         const result = await bot.sendMessage(chatId, finalMessage, finalOpt);
