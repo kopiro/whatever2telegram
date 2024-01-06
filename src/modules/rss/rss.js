@@ -6,7 +6,7 @@ exports.fetch = async ({ url }) => {
 
   const data = feed.items.map(e => {
     return {
-      hash: e.guid,
+      hash: e.guid || e.link || JSON.stringify(e),
       message: [`<b>${e.title.trim()}</b>`, e.content.trim()].join("\n"),
       url: e.link,
     };

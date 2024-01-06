@@ -71,7 +71,7 @@ function notifyChange(bot, chatIds, element) {
       const finalMessage = [message, url, footer ? `<i>${footer}</i>` : null]
         .map(e => (e ? e.trim() : e))
         .filter(e => e)
-        .join(newLine);
+        .join(newLine + newLine);
 
       if (finalMessage) {
         const result = await bot.sendMessage(chatId, finalMessage, finalOpt);
